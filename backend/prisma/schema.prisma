@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  isPremium    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  profiles      Profile[]
+  accounts      Account[]
+  transactions  Transaction[]
+  goals         Goal[]
+  categories    Category[]
+  subscriptions Subscription[]
+  aiRequests    AIRequestLog[]
+}
+
+model Profile {
+  id           String        @id @default(uuid())
+  name         String
+  type         String
+  userId       String
+  createdAt    DateTime      @default(now())
+
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+}
+
+model Account {
+  id           String        @id @default(uuid())
+  name         String
+  balance      Float         @default(0)
+  userId       String
+  createdAt    DateTime      @default(now())
+
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[] @relation("TransactionAccount")
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  icon      String?
+  type      String     // income | expense
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id            String     @id @default(uuid())
+  type          String     // income | expense | transfer | debt_give | debt_take | debt_repay
+  amount        Float
+  description   String?
+  date          DateTime
+  createdAt     DateTime   @default(now())
+
+  // связь с пользователем
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+
+  profileId     String
+  profile       Profile    @relation(fields: [profileId], references: [id])
+
+  categoryId    String?
+  category      Category?  @relation(fields: [categoryId], references: [id])
+
+  accountId     String?
+  account       Account?   @relation("TransactionAccount", fields: [accountId], references: [id])
+
+  fromAccountId String?    // для переводов
+  toAccountId   String?    // для переводов
+
+  contactName   String?    // для долгов
+  contactPhone  String?
+  debtStatus    String?    // active | closed
+}
+
+model Goal {
+  id         String     @id @default(uuid())
+  title      String
+  target     Float
+  saved      Float      @default(0)
+  deadline   DateTime?
+  userId     String
+
+  user       User       @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id         String     @id @default(uuid())
+  userId     String
+  status     String     // active | trial | expired
+  plan       String?
+  expiresAt  DateTime?
+
+  user       User       @relation(fields: [userId], references: [id])
+}
+
+model AIRequestLog {
+  id         String     @id @default(uuid())
+  prompt     String
+  response   String
+  createdAt  DateTime   @default(now())
+  userId     String
+
+  user       User       @relation(fields: [userId], references: [id])
+}
