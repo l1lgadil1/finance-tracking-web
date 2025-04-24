@@ -1,22 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AqshaTracker Frontend
+
+This is the frontend application for AqshaTracker, a personal finance tracking tool. The project is built using Next.js and follows the Feature Sliced Design (FSD) architecture.
+
+## Feature Sliced Design
+
+This project follows the Feature Sliced Design architecture, which organizes code into layers and slices:
+
+### Layers
+
+1. **app** - Application initialization, global providers, styles, and configuration
+2. **pages** - Pages/screens that correspond to routes in the application
+3. **widgets** - Complex, composite blocks, used within pages
+4. **features** - User interactions that implement business logic
+5. **entities** - Business entities and their operations
+6. **shared** - Reusable infrastructure code (UI, API, utils, etc.)
+
+### Segments in Each Layer
+
+Each layer can have these segments:
+- **ui** - UI components
+- **model** - Business logic (store, state)
+- **api** - API interactions
+- **lib** - Utils/helpers
+- **config** - Constants, configuration
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Folder Structure
+
+```
+src/
+├── app/               # Application setup
+│   ├── [locale]/      # Localized routes
+│   ├── providers.tsx  # Global providers
+│   ├── styles/        # Global styles
+│   └── layout.tsx     # Root layout
+│
+├── pages/             # Application pages
+│   ├── home/
+│   │   ├── ui/        # Page UI components
+│   │   └── index.ts   # Public API
+│   ├── dashboard/
+│   ├── transactions/
+│   └── ...
+│
+├── widgets/           # Complex composite blocks
+│   ├── Header/
+│   ├── TransactionChart/
+│   └── ...
+│
+├── features/          # User interactions
+│   ├── auth/
+│   ├── transactionFiltering/
+│   └── ...
+│
+├── entities/          # Business entities
+│   ├── user/
+│   │   ├── api/
+│   │   ├── model/
+│   │   ├── ui/
+│   │   └── index.ts
+│   ├── transaction/
+│   ├── account/
+│   └── ...
+│
+├── shared/            # Shared code
+│   ├── api/           # API utilities
+│   ├── config/        # Global configuration
+│   ├── lib/           # Utilities and helpers
+│   ├── model/         # Global state
+│   └── ui/            # UI components
+│
+└── middleware.ts      # Next.js middleware
+```
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
