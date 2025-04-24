@@ -1,12 +1,19 @@
-import { HomePage } from '@/pages/home';
-import { Locale } from '@/shared/lib/i18n';
+'use client';
 
-interface HomePageProps {
+import { LandingPage } from '@/pages/home';
+import { Locale } from '@/lib/i18n';
+
+interface LocalePageProps {
   params: {
-    locale: Locale;
+    locale: string;
   };
 }
 
-export default function Home({ params }: HomePageProps) {
-  return <HomePage params={params} />;
-} 
+export default function Home({ params }: LocalePageProps) {
+  // Cast the locale string to the Locale type
+  const typedParams = {
+    locale: params?.locale as Locale
+  };
+  
+  return <LandingPage params={typedParams} />;
+}
