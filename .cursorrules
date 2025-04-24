@@ -1,0 +1,26 @@
+# Cursor Rules for AqshaTracker Backend
+
+This file captures project-specific patterns, preferences, and intelligence learned during development.
+
+## General
+
+- **Memory Bank:** Always read all Memory Bank files (`memory-bank/*.md`) at the start of each session to maintain context. Update them frequently, especially `activeContext.md` and `progress.md`.
+- **Task Workflow:** Follow the Plan/Act modes as defined in internal instructions. Use `/plan` for significant tasks, ask clarifying questions, get plan approval, and report progress.
+- **User:** The user is an expert programmer. Avoid obvious code comments.
+
+## Technology & Patterns
+
+- **Stack:** NestJS, Prisma, PostgreSQL, JWT, bcrypt, Zod (`nestjs-zod`), Swagger.
+- **Architecture:** Modular REST API.
+- **Validation:** Use `nestjs-zod` for DTOs and validation.
+- **Authentication:** JWT via Passport.js. Protect routes with `JwtAuthGuard`. Use a `@CurrentUser` decorator for user ID access.
+- **Database:** Interact via `PrismaService` provided by a global `PrismaModule`.
+- **Configuration:** Use `@nestjs/config` and `.env` files.
+- **API Docs:** Use Swagger (`@nestjs/swagger`).
+
+## Implementation Details (To be discovered/confirmed)
+
+- Specific implementation of `@CurrentUser` decorator.
+- Transaction service logic for different types (transfer balance updates, debt tracking).
+- Filtering logic implementation details.
+- Error handling strategy. 

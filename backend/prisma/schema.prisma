@@ -8,20 +8,19 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  password     String
-  isPremium    Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  profiles      Profile[]
-  accounts      Account[]
-  transactions  Transaction[]
-  goals         Goal[]
-  categories    Category[]
-  subscriptions Subscription[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  isPremium     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   aiRequests    AIRequestLog[]
+  accounts      Account[]
+  categories    Category[]
+  goals         Goal[]
+  profiles      Profile[]
+  subscriptions Subscription[]
+  transactions  Transaction[]
 }
 
 model Profile {
@@ -30,7 +29,6 @@ model Profile {
   type         String
   userId       String
   createdAt    DateTime      @default(now())
-
   user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
 }
@@ -41,77 +39,66 @@ model Account {
   balance      Float         @default(0)
   userId       String
   createdAt    DateTime      @default(now())
-
   user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[] @relation("TransactionAccount")
 }
 
 model Category {
-  id        String     @id @default(uuid())
-  name      String
-  icon      String?
-  type      String     // income | expense
-  userId    String?
-  user      User?      @relation(fields: [userId], references: [id])
+  id           String        @id @default(uuid())
+  name         String
+  icon         String?
+  type         String
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id])
   transactions Transaction[]
 }
 
 model Transaction {
-  id            String     @id @default(uuid())
-  type          String     // income | expense | transfer | debt_give | debt_take | debt_repay
+  id            String    @id @default(uuid())
+  type          String
   amount        Float
   description   String?
   date          DateTime
-  createdAt     DateTime   @default(now())
-
-  // связь с пользователем
+  createdAt     DateTime  @default(now())
   userId        String
-  user          User       @relation(fields: [userId], references: [id])
-
   profileId     String
-  profile       Profile    @relation(fields: [profileId], references: [id])
-
   categoryId    String?
-  category      Category?  @relation(fields: [categoryId], references: [id])
-
   accountId     String?
-  account       Account?   @relation("TransactionAccount", fields: [accountId], references: [id])
-
-  fromAccountId String?    // для переводов
-  toAccountId   String?    // для переводов
-
-  contactName   String?    // для долгов
+  fromAccountId String?
+  toAccountId   String?
+  contactName   String?
   contactPhone  String?
-  debtStatus    String?    // active | closed
+  debtStatus    String?
+  account       Account?  @relation("TransactionAccount", fields: [accountId], references: [id])
+  category      Category? @relation(fields: [categoryId], references: [id])
+  profile       Profile   @relation(fields: [profileId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
 }
 
 model Goal {
-  id         String     @id @default(uuid())
-  title      String
-  target     Float
-  saved      Float      @default(0)
-  deadline   DateTime?
-  userId     String
-
-  user       User       @relation(fields: [userId], references: [id])
+  id       String    @id @default(uuid())
+  title    String
+  target   Float
+  saved    Float     @default(0)
+  deadline DateTime?
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
 }
 
 model Subscription {
-  id         String     @id @default(uuid())
-  userId     String
-  status     String     // active | trial | expired
-  plan       String?
-  expiresAt  DateTime?
-
-  user       User       @relation(fields: [userId], references: [id])
+  id        String    @id @default(uuid())
+  userId    String
+  status    String
+  plan      String?
+  expiresAt DateTime?
+  user      User      @relation(fields: [userId], references: [id])
 }
 
 model AIRequestLog {
-  id         String     @id @default(uuid())
-  prompt     String
-  response   String
-  createdAt  DateTime   @default(now())
-  userId     String
-
-  user       User       @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid())
+  prompt    String
+  response  String
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 }
