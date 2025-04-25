@@ -5,9 +5,14 @@ import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useAppStore } from '@/store/app-store';
-import { Locale } from '@/lib/i18n';
+import { Locale, translations } from '@/lib/i18n';
 import { Button } from '@/shared/ui/Button';
 import { Card, CardBody } from '@/shared/ui/Card';
+
+// Type for nested translations
+type NestedMessages = {
+  [key: string]: string | NestedMessages;
+};
 
 // Animation variants
 const fadeIn = {
@@ -35,6 +40,286 @@ interface LandingPageProps {
   };
 }
 
+// Localization dictionaries
+const landingPageTranslations = {
+  en: {
+    nav: {
+      features: 'Features',
+      whoFor: 'Who it\'s for',
+      compare: 'Compare',
+      reviews: 'Reviews'
+    },
+    hero: {
+      title: 'Take control of your finances',
+      titleHighlight: 'with AI',
+      subtitle: 'AqshaTracker helps you understand your money, reach your goals, and build financial freedom.',
+      startButton: 'Start for Free',
+      howItWorks: 'How It Works',
+      mockupLabel: 'App Interface Mockup',
+      aiInsight: 'AI Insight',
+      aiMessage: 'You\'ve spent 35% more on dining this month than your average. Want to create a dining budget?'
+    },
+    features: {
+      title: 'Smart features for your finances',
+      subtitle: 'Powerful tools to help you manage your money efficiently and reach your financial goals.',
+      items: [
+        {
+          title: 'Smart Tracking',
+          description: 'Automatically categorize and track your income & expenses',
+          icon: '📊'
+        },
+        {
+          title: 'AI Assistant',
+          description: 'Get personalized financial insights and recommendations',
+          icon: '🤖'
+        },
+        {
+          title: 'Goal Setting',
+          description: 'Set financial goals and track your progress',
+          icon: '🎯'
+        },
+        {
+          title: 'Multiple Profiles',
+          description: 'Manage personal, family, or business finances separately',
+          icon: '👥'
+        },
+        {
+          title: 'In-depth Analytics',
+          description: 'Visualize your spending patterns and financial health',
+          icon: '📈'
+        },
+        {
+          title: 'Transaction History',
+          description: 'View and search your complete financial history',
+          icon: '📝'
+        }
+      ]
+    },
+    audiences: {
+      title: 'Who is AqshaTracker for?',
+      subtitle: 'Financial management tailored to your specific needs.',
+      items: [
+        {
+          type: 'Students',
+          caption: 'Master your stipend',
+          avatar: '👨‍🎓'
+        },
+        {
+          type: 'Professionals',
+          caption: 'Save for what matters',
+          avatar: '👩‍💼'
+        },
+        {
+          type: 'Entrepreneurs',
+          caption: 'Know your profit',
+          avatar: '👨‍💻'
+        },
+        {
+          type: 'Families',
+          caption: 'Coordinate a shared budget',
+          avatar: '👨‍👩‍👧‍👦'
+        }
+      ]
+    },
+    userStory: {
+      quote: 'I always felt like I had no money. AqshaTracker showed me where it all went — now I\'m saving with purpose.',
+      author: 'Amelia, Graphic Designer'
+    },
+    comparison: {
+      title: 'How AqshaTracker Compares',
+      subtitle: 'See why AqshaTracker is the smart choice for modern financial management.',
+      tableHeaders: {
+        feature: 'Feature',
+        aqsha: 'AqshaTracker',
+        excel: 'Excel',
+        others: 'Other Apps'
+      },
+      items: [
+        { feature: 'AI-powered insights', aqsha: true, excel: false, others: false },
+        { feature: 'Multi-profile support', aqsha: true, excel: false, others: 'Limited' },
+        { feature: 'User-friendly interface', aqsha: true, excel: false, others: 'Varies' },
+        { feature: 'Goal tracking', aqsha: true, excel: 'Manual', others: 'Basic' },
+        { feature: 'Free plan', aqsha: true, excel: 'Paid', others: 'Limited' }
+      ]
+    },
+    testimonials: {
+      title: 'What Our Users Say',
+      subtitle: 'Real stories from people who transformed their financial lives with AqshaTracker.',
+      items: [
+        {
+          name: 'Sarah K.',
+          role: 'Marketing Manager',
+          comment: 'AqshaTracker helped me save for my dream vacation. The AI insights were eye-opening!',
+          avatar: '👩‍🦰'
+        },
+        {
+          name: 'Michael T.',
+          role: 'Graduate Student',
+          comment: 'Managing my student loans and expenses has never been easier. This app is a lifesaver!',
+          avatar: '👨‍🎓'
+        },
+        {
+          name: 'Jessica L.',
+          role: 'Small Business Owner',
+          comment: 'I can finally separate my business and personal finances with multiple profiles. Game changer!',
+          avatar: '👩‍💼'
+        }
+      ]
+    },
+    cta: {
+      title: 'Ready to master your money?',
+      subtitle: 'Try AqshaTracker today — it\'s free.',
+      button: 'Get Started Now'
+    },
+    footer: {
+      copyright: '© 2023 AqshaTracker. All rights reserved.',
+      links: {
+        privacy: 'Privacy Policy',
+        terms: 'Terms of Service',
+        contact: 'Contact'
+      }
+    }
+  },
+  ru: {
+    nav: {
+      features: 'Функции',
+      whoFor: 'Для кого',
+      compare: 'Сравнение',
+      reviews: 'Отзывы'
+    },
+    hero: {
+      title: 'Возьмите под контроль свои финансы',
+      titleHighlight: 'с ИИ',
+      subtitle: 'АкшаТрекер помогает понять ваши финансы, достичь целей и построить финансовую свободу.',
+      startButton: 'Начать бесплатно',
+      howItWorks: 'Как это работает',
+      mockupLabel: 'Макет интерфейса приложения',
+      aiInsight: 'ИИ инсайт',
+      aiMessage: 'Вы потратили на 35% больше на питание в этом месяце, чем в среднем. Хотите создать бюджет на питание?'
+    },
+    features: {
+      title: 'Умные функции для ваших финансов',
+      subtitle: 'Мощные инструменты для эффективного управления деньгами и достижения финансовых целей.',
+      items: [
+        {
+          title: 'Умное отслеживание',
+          description: 'Автоматически категоризируйте и отслеживайте доходы и расходы',
+          icon: '📊'
+        },
+        {
+          title: 'ИИ ассистент',
+          description: 'Получайте персонализированные финансовые аналитики и рекомендации',
+          icon: '🤖'
+        },
+        {
+          title: 'Постановка целей',
+          description: 'Установите финансовые цели и отслеживайте свой прогресс',
+          icon: '🎯'
+        },
+        {
+          title: 'Несколько профилей',
+          description: 'Управляйте личными, семейными или бизнес-финансами отдельно',
+          icon: '👥'
+        },
+        {
+          title: 'Глубокая аналитика',
+          description: 'Визуализируйте свои расходы и финансовое здоровье',
+          icon: '📈'
+        },
+        {
+          title: 'История транзакций',
+          description: 'Просматривайте и ищите вашу полную финансовую историю',
+          icon: '📝'
+        }
+      ]
+    },
+    audiences: {
+      title: 'Для кого подходит АкшаТрекер?',
+      subtitle: 'Финансовое управление, адаптированное к вашим конкретным потребностям.',
+      items: [
+        {
+          type: 'Студенты',
+          caption: 'Управляйте стипендией',
+          avatar: '👨‍🎓'
+        },
+        {
+          type: 'Профессионалы',
+          caption: 'Откладывайте на важное',
+          avatar: '👩‍💼'
+        },
+        {
+          type: 'Предприниматели',
+          caption: 'Знайте свою прибыль',
+          avatar: '👨‍💻'
+        },
+        {
+          type: 'Семьи',
+          caption: 'Координируйте общий бюджет',
+          avatar: '👨‍👩‍👧‍👦'
+        }
+      ]
+    },
+    userStory: {
+      quote: 'Мне всегда казалось, что у меня нет денег. АкшаТрекер показал, куда они уходят — теперь я коплю целенаправленно.',
+      author: 'Амелия, Графический дизайнер'
+    },
+    comparison: {
+      title: 'Сравнение АкшаТрекера',
+      subtitle: 'Узнайте, почему АкшаТрекер - умный выбор для современного управления финансами.',
+      tableHeaders: {
+        feature: 'Функция',
+        aqsha: 'АкшаТрекер',
+        excel: 'Excel',
+        others: 'Другие приложения'
+      },
+      items: [
+        { feature: 'ИИ-аналитика', aqsha: true, excel: false, others: false },
+        { feature: 'Поддержка нескольких профилей', aqsha: true, excel: false, others: 'Ограничено' },
+        { feature: 'Удобный интерфейс', aqsha: true, excel: false, others: 'Различается' },
+        { feature: 'Отслеживание целей', aqsha: true, excel: 'Вручную', others: 'Базовое' },
+        { feature: 'Бесплатный план', aqsha: true, excel: 'Платно', others: 'Ограничено' }
+      ]
+    },
+    testimonials: {
+      title: 'Что говорят наши пользователи',
+      subtitle: 'Реальные истории людей, которые преобразили свою финансовую жизнь с АкшаТрекером.',
+      items: [
+        {
+          name: 'Сара К.',
+          role: 'Маркетинг-менеджер',
+          comment: 'АкшаТрекер помог мне накопить на отпуск мечты. Аналитика ИИ открыла глаза!',
+          avatar: '👩‍🦰'
+        },
+        {
+          name: 'Михаил Т.',
+          role: 'Аспирант',
+          comment: 'Управлять студенческими кредитами и расходами стало проще. Это приложение - спасение!',
+          avatar: '👨‍🎓'
+        },
+        {
+          name: 'Жессика Л.',
+          role: 'Владелец малого бизнеса',
+          comment: 'Наконец-то я могу разделить бизнес и личные финансы с разными профилями. Игра изменилась!',
+          avatar: '👩‍💼'
+        }
+      ]
+    },
+    cta: {
+      title: 'Готовы управлять своими деньгами?',
+      subtitle: 'Попробуйте АкшаТрекер сегодня — это бесплатно.',
+      button: 'Начать сейчас'
+    },
+    footer: {
+      copyright: '© 2023 АкшаТрекер. Все права защищены.',
+      links: {
+        privacy: 'Политика конфиденциальности',
+        terms: 'Условия использования',
+        contact: 'Контакты'
+      }
+    }
+  }
+};
+
 export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
   const { setLocale, locale } = useAppStore();
   const [mounted, setMounted] = useState(false);
@@ -50,94 +335,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  // Features data
-  const features = [
-    {
-      title: 'Smart Tracking',
-      description: 'Automatically categorize and track your income & expenses',
-      icon: '📊'
-    },
-    {
-      title: 'AI Assistant',
-      description: 'Get personalized financial insights and recommendations',
-      icon: '🤖'
-    },
-    {
-      title: 'Goal Setting',
-      description: 'Set financial goals and track your progress',
-      icon: '🎯'
-    },
-    {
-      title: 'Multiple Profiles',
-      description: 'Manage personal, family, or business finances separately',
-      icon: '👥'
-    },
-    {
-      title: 'In-depth Analytics',
-      description: 'Visualize your spending patterns and financial health',
-      icon: '📈'
-    },
-    {
-      title: 'Transaction History',
-      description: 'View and search your complete financial history',
-      icon: '📝'
-    }
-  ];
-
-  // Target audience data
-  const audiences = [
-    {
-      type: 'Students',
-      caption: 'Master your stipend',
-      avatar: '👨‍🎓'
-    },
-    {
-      type: 'Professionals',
-      caption: 'Save for what matters',
-      avatar: '👩‍💼'
-    },
-    {
-      type: 'Entrepreneurs',
-      caption: 'Know your profit',
-      avatar: '👨‍💻'
-    },
-    {
-      type: 'Families',
-      caption: 'Coordinate a shared budget',
-      avatar: '👨‍👩‍👧‍👦'
-    }
-  ];
-
-  // Testimonials data
-  const testimonials = [
-    {
-      name: 'Sarah K.',
-      role: 'Marketing Manager',
-      comment: 'AqshaTracker helped me save for my dream vacation. The AI insights were eye-opening!',
-      avatar: '👩‍🦰'
-    },
-    {
-      name: 'Michael T.',
-      role: 'Graduate Student',
-      comment: 'Managing my student loans and expenses has never been easier. This app is a lifesaver!',
-      avatar: '👨‍🎓'
-    },
-    {
-      name: 'Jessica L.',
-      role: 'Small Business Owner',
-      comment: 'I can finally separate my business and personal finances with multiple profiles. Game changer!',
-      avatar: '👩‍💼'
-    }
-  ];
-
-  // Comparison table data
-  const comparisonItems = [
-    { feature: 'AI-powered insights', aqsha: true, excel: false, others: false },
-    { feature: 'Multi-profile support', aqsha: true, excel: false, others: 'Limited' },
-    { feature: 'User-friendly interface', aqsha: true, excel: false, others: 'Varies' },
-    { feature: 'Goal tracking', aqsha: true, excel: 'Manual', others: 'Basic' },
-    { feature: 'Free plan', aqsha: true, excel: 'Paid', others: 'Limited' }
-  ];
+  // Get localized text based on current locale
+  const t = landingPageTranslations[locale as Locale] || landingPageTranslations.en;
 
   return (
     <main className="flex min-h-screen flex-col items-center">
@@ -149,15 +348,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
           className="flex items-center space-x-2"
         >
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-primary-700 bg-clip-text text-transparent">
-            AqshaTracker
+            {((translations[locale as Locale]?.common as NestedMessages)?.title as string) || 'AqshaTracker'}
           </h1>
         </motion.div>
         <div className="flex items-center space-x-4">
           <div className="hidden md:flex space-x-6">
-            <a href="#features" className="text-foreground hover:text-primary-500 transition-colors">Features</a>
-            <a href="#audiences" className="text-foreground hover:text-primary-500 transition-colors">Who it&apos;s for</a>
-            <a href="#comparison" className="text-foreground hover:text-primary-500 transition-colors">Compare</a>
-            <a href="#testimonials" className="text-foreground hover:text-primary-500 transition-colors">Reviews</a>
+            <a href="#features" className="text-foreground hover:text-primary-500 transition-colors">{t.nav.features}</a>
+            <a href="#audiences" className="text-foreground hover:text-primary-500 transition-colors">{t.nav.whoFor}</a>
+            <a href="#comparison" className="text-foreground hover:text-primary-500 transition-colors">{t.nav.compare}</a>
+            <a href="#testimonials" className="text-foreground hover:text-primary-500 transition-colors">{t.nav.reviews}</a>
           </div>
           <div className="flex space-x-2">
             <ThemeToggle />
@@ -178,14 +377,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
           variants={fadeIn}
         >
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            Take control of your finances <span className="text-primary-500">with AI</span>
+            {t.hero.title} <span className="text-primary-500">{t.hero.titleHighlight}</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            AqshaTracker helps you understand your money, reach your goals, and build financial freedom.
+            {t.hero.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-            <Button size="lg">Start for Free</Button>
-            <Button variant="outline" size="lg">How It Works</Button>
+            <Button size="lg">{t.hero.startButton}</Button>
+            <Button variant="outline" size="lg">{t.hero.howItWorks}</Button>
           </div>
           
           {/* App Mockup */}
@@ -198,15 +397,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             <div className="bg-card border border-border shadow-lg rounded-xl p-4 overflow-hidden">
               <div className="h-[400px] w-full bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
                 <div className="text-center p-4">
-                  <p className="text-sm text-gray-500 mb-1">App Interface Mockup</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.hero.mockupLabel}</p>
                   <div className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg shadow-md">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center text-primary-500">
                         💡
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-sm font-medium">AI Insight</h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-300">You&apos;ve spent 35% more on dining this month than your average. Want to create a dining budget?</p>
+                        <h3 className="text-sm font-medium">{t.hero.aiInsight}</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">{t.hero.aiMessage}</p>
                       </div>
                     </div>
                   </div>
@@ -227,9 +426,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={fadeIn}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Smart features for your finances</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.features.title}</h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Powerful tools to help you manage your money efficiently and reach your financial goals.
+              {t.features.subtitle}
             </p>
           </motion.div>
           
@@ -240,7 +439,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {features.map((feature, index) => (
+            {t.features.items.map((feature, index) => (
               <motion.div key={index} variants={fadeIn}>
                 <Card hoverable className="h-full">
                   <CardBody>
@@ -265,9 +464,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={fadeIn}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Who is AqshaTracker for?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.audiences.title}</h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Financial management tailored to your specific needs.
+              {t.audiences.subtitle}
             </p>
           </motion.div>
           
@@ -278,7 +477,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
-            {audiences.map((audience, index) => (
+            {t.audiences.items.map((audience, index) => (
               <motion.div key={index} variants={fadeIn}>
                 <Card hoverable className="text-center p-6">
                   <div className="text-5xl mb-4">{audience.avatar}</div>
@@ -308,9 +507,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             </div>
             <div className="w-full md:w-2/3">
               <blockquote className="text-xl md:text-2xl italic mb-4">
-                &ldquo;I always felt like I had no money. AqshaTracker showed me where it all went — now I&apos;m saving with purpose.&rdquo;
+                &ldquo;{t.userStory.quote}&rdquo;
               </blockquote>
-              <p className="text-right font-medium">— Amelia, Graphic Designer</p>
+              <p className="text-right font-medium">— {t.userStory.author}</p>
             </div>
           </motion.div>
         </div>
@@ -326,9 +525,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={fadeIn}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How AqshaTracker Compares</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.comparison.title}</h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              See why AqshaTracker is the smart choice for modern financial management.
+              {t.comparison.subtitle}
             </p>
           </motion.div>
           
@@ -342,14 +541,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             <table className="w-full min-w-full border-collapse">
               <thead>
                 <tr className="bg-primary-50 dark:bg-primary-900/30">
-                  <th className="py-4 px-4 text-left border-b border-border">Feature</th>
-                  <th className="py-4 px-4 text-center border-b border-border">AqshaTracker</th>
-                  <th className="py-4 px-4 text-center border-b border-border">Excel</th>
-                  <th className="py-4 px-4 text-center border-b border-border">Other Apps</th>
+                  <th className="py-4 px-4 text-left border-b border-border">{t.comparison.tableHeaders.feature}</th>
+                  <th className="py-4 px-4 text-center border-b border-border">{t.comparison.tableHeaders.aqsha}</th>
+                  <th className="py-4 px-4 text-center border-b border-border">{t.comparison.tableHeaders.excel}</th>
+                  <th className="py-4 px-4 text-center border-b border-border">{t.comparison.tableHeaders.others}</th>
                 </tr>
               </thead>
               <tbody>
-                {comparisonItems.map((item, index) => (
+                {t.comparison.items.map((item, index) => (
                   <tr key={index} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/30' : ''}>
                     <td className="py-3 px-4 border-b border-border">{item.feature}</td>
                     <td className="py-3 px-4 text-center border-b border-border">
@@ -397,9 +596,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={fadeIn}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Users Say</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.testimonials.title}</h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Real stories from people who transformed their financial lives with AqshaTracker.
+              {t.testimonials.subtitle}
             </p>
           </motion.div>
           
@@ -410,7 +609,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            {testimonials.map((testimonial, index) => (
+            {t.testimonials.items.map((testimonial, index) => (
               <motion.div key={index} variants={fadeIn}>
                 <Card hoverable className="h-full">
                   <CardBody>
@@ -441,14 +640,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             viewport={{ once: true }}
             variants={fadeIn}
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to master your money?</h2>
-            <p className="text-xl mb-8">Try AqshaTracker today — it&apos;s free.</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.cta.title}</h2>
+            <p className="text-xl mb-8">{t.cta.subtitle}</p>
             <Button 
               size="lg" 
               variant="secondary" 
               className="bg-white text-primary-600 hover:bg-gray-100 dark:bg-white dark:text-primary-600 dark:hover:bg-gray-100"
             >
-              Get Started Now
+              {t.cta.button}
             </Button>
           </motion.div>
         </div>
@@ -458,11 +657,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
       <footer className="w-full py-8 px-4 bg-card border-t border-border">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-500 mb-4 md:mb-0">© 2023 AqshaTracker. All rights reserved.</p>
+            <p className="text-gray-500 mb-4 md:mb-0">{t.footer.copyright}</p>
             <div className="flex space-x-6">
-              <a href="#" className="text-gray-500 hover:text-primary-500">Privacy Policy</a>
-              <a href="#" className="text-gray-500 hover:text-primary-500">Terms of Service</a>
-              <a href="#" className="text-gray-500 hover:text-primary-500">Contact</a>
+              <a href="#" className="text-gray-500 hover:text-primary-500">{t.footer.links.privacy}</a>
+              <a href="#" className="text-gray-500 hover:text-primary-500">{t.footer.links.terms}</a>
+              <a href="#" className="text-gray-500 hover:text-primary-500">{t.footer.links.contact}</a>
             </div>
           </div>
         </div>

@@ -132,7 +132,40 @@ flowchart TD
 - **Atomic Design (Partial):** Building from small components to larger compositions.
 - **Feature Sliced Design:** Organizing code into layers and slices.
 - **Component Composition:** Building complex UIs from smaller, reusable components.
+- **Component Reuse Strategy:** Always check for and reuse existing components in `shared/ui` directory before creating new ones. Adapt existing components with props rather than creating duplicates with minor variations.
 - **Custom Hooks:** Encapsulating reusable stateful logic.
 - **Provider Pattern:** Used for theme, localization, and state context.
 - **Controlled Components:** For form elements and interactive components.
-- **CSS-in-JS with Tailwind:** Using utility classes with custom variables. 
+- **CSS-in-JS with Tailwind:** Using utility classes with custom variables.
+
+## Localization Pattern
+
+### Components Localization
+- **Component-Level Translations:** Each component that contains user-facing text should have its own localization dictionaries.
+- **Dictionary Structure:** Organize translations as nested objects by locale with semantic keys.
+- **Implementation Pattern:**
+  ```tsx
+  // Component localization pattern
+  const componentTranslations = {
+    en: {
+      section: {
+        title: 'English Title',
+        subtitle: 'English subtitle'
+      },
+      // Other sections...
+    },
+    ru: {
+      section: {
+        title: 'Russian Title',
+        subtitle: 'Russian subtitle'
+      },
+      // Other sections...
+    }
+  };
+  
+  // Access translations
+  const t = componentTranslations[locale as Locale] || componentTranslations.en;
+  ```
+- **Global Translations:** Common UI elements (navigation, footer, etc.) should use the global translations from `translations` in the i18n module.
+- **Fallback Handling:** Always provide fallbacks to English when accessing translations.
+- **Type Safety:** Use proper type assertions or type definitions for nested translation objects. 

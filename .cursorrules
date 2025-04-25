@@ -18,6 +18,17 @@ This file captures project-specific patterns, preferences, and intelligence lear
 - **Configuration:** Use `@nestjs/config` and `.env` files.
 - **API Docs:** Use Swagger (`@nestjs/swagger`).
 
+## Frontend Patterns
+
+- **Architecture:** Follow Feature Sliced Design (FSD) principles for organizing code.
+- **Component Reuse:** Always reuse existing UI components from `shared/ui` directory. Only create new components when existing ones cannot be adapted for the required functionality.
+- **Styling:** Use Tailwind CSS with custom theme variables for consistent styling.
+- **State Management:** Use Zustand for global state management.
+- **Animations:** Use Framer Motion for component animations.
+- **Localization:** Always implement component-level translation dictionaries for any component with user-facing text. Support English and Russian locales at minimum.
+- **Theme Support:** Ensure all components work with both light and dark themes.
+- **Responsive Design:** All components should be responsive across mobile, tablet, and desktop.
+
 ## Implementation Details (To be discovered/confirmed)
 
 - Specific implementation of `@CurrentUser` decorator.
