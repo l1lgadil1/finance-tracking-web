@@ -1,6 +1,8 @@
 import { FC } from 'react';
+import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardBody, CardHeader } from '@/shared/ui/Card';
+import { useDashboardData } from '../providers/DashboardDataProvider';
 
 const overviewTranslations = {
   en: {
@@ -10,6 +12,8 @@ const overviewTranslations = {
     monthlyExpenses: 'Monthly Expenses',
     netSavings: 'Net Savings',
     expensesByCategory: 'Expenses by Category',
+    loading: 'Loading...',
+    error: 'Error loading data',
   },
   ru: {
     financialOverview: 'Финансовый обзор',
@@ -18,6 +22,8 @@ const overviewTranslations = {
     monthlyExpenses: 'Месячные расходы',
     netSavings: 'Чистые сбережения',
     expensesByCategory: 'Расходы по категориям',
+    loading: 'Загрузка...',
+    error: 'Ошибка загрузки данных',
   }
 };
 
@@ -27,16 +33,48 @@ interface OverviewSectionProps {
 
 export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
   const t = overviewTranslations[locale] || overviewTranslations.en;
+  const { 
+    totalBalance, 
+    monthlyIncome, 
+    monthlyExpenses, 
+    netSavings,
+    accounts,
+    transactions 
+  } = useDashboardData();
   
-  // Mock data for metrics
-  const metrics = {
-    totalBalance: 2698.12,
-    monthlyIncome: 3500.00,
-    monthlyExpenses: 1850.75,
-    netSavings: 1649.25,
-  };
+  // Loading state
+  if (accounts.loading || transactions.loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.financialOverview}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="flex justify-center items-center p-8">
+            <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (accounts.error || transactions.error) {
+    return (
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.financialOverview}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
+            {accounts.error || transactions.error || t.error}
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
   
-  // Mock data for chart
+  // Mock data for chart - in a real app we'd calculate this from transactions
   const expenseCategories = [
     { name: 'Food', value: 650 },
     { name: 'Rent', value: 800 },
@@ -53,28 +91,44 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
       <CardBody>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Total Balance */}
-          <div className="bg-primary-50 dark:bg-primary-900/30 p-4 rounded-lg">
+          <motion.div 
+            className="bg-primary-50 dark:bg-primary-900/30 p-4 rounded-lg"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
             <p className="text-sm text-gray-600 dark:text-gray-400">{t.totalBalance}</p>
-            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">${metrics.totalBalance.toFixed(2)}</p>
-          </div>
+            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">${totalBalance.toFixed(2)}</p>
+          </motion.div>
           
           {/* Monthly Income */}
-          <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+          <motion.div 
+            className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
             <p className="text-sm text-gray-600 dark:text-gray-400">{t.monthlyIncome}</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">${metrics.monthlyIncome.toFixed(2)}</p>
-          </div>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">${monthlyIncome.toFixed(2)}</p>
+          </motion.div>
           
           {/* Monthly Expenses */}
-          <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg">
+          <motion.div 
+            className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
             <p className="text-sm text-gray-600 dark:text-gray-400">{t.monthlyExpenses}</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">${metrics.monthlyExpenses.toFixed(2)}</p>
-          </div>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">${monthlyExpenses.toFixed(2)}</p>
+          </motion.div>
           
           {/* Net Savings */}
-          <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+          <motion.div 
+            className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
             <p className="text-sm text-gray-600 dark:text-gray-400">{t.netSavings}</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">${metrics.netSavings.toFixed(2)}</p>
-          </div>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">${netSavings.toFixed(2)}</p>
+          </motion.div>
         </div>
         
         {/* Expense Categories Chart (placeholder) */}
@@ -84,13 +138,14 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
             {/* Pie chart placeholder */}
             <div className="flex flex-wrap gap-2 p-4">
               {expenseCategories.map((category, index) => (
-                <div 
+                <motion.div 
                   key={index} 
                   className="flex items-center gap-2"
+                  whileHover={{ scale: 1.05 }}
                 >
                   <div className={`w-3 h-3 rounded-full bg-primary-${(index + 3) * 100}`}></div>
                   <span className="text-sm">{category.name}: ${category.value}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>

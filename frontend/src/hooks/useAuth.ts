@@ -28,7 +28,7 @@ interface UseAuthReturn {
 
 export const useAuth = (locale: string = 'en'): UseAuthReturn => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start with loading true
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -37,6 +37,7 @@ export const useAuth = (locale: string = 'en'): UseAuthReturn => {
     
     if (!token) {
       setUser(null);
+      setIsLoading(false);
       return;
     }
 
@@ -45,8 +46,9 @@ export const useAuth = (locale: string = 'en'): UseAuthReturn => {
     try {
       const userData = await authApi.getProfile();
       setUser(userData);
-    } catch {
+    } catch (error) {
       // Token is invalid, remove it
+      console.error('Error fetching user profile:', error);
       authApi.removeToken();
       setUser(null);
     } finally {

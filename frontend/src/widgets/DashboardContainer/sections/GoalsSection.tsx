@@ -1,49 +1,101 @@
 import { FC } from 'react';
+import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardBody, CardHeader } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
+import { Badge } from '@/shared/ui/Badge';
+import { useDashboardData } from '../providers/DashboardDataProvider';
 
 interface GoalsSectionProps {
-  locale: Locale; // Kept for consistency with other sections
+  locale: Locale;
   t: {
     goals: string;
     viewAll: string;
   };
 }
 
-export const GoalsSection: FC<GoalsSectionProps> = ({ t }) => {
-  // Mock data for goals
-  const goals = [
-    {
-      id: 1,
-      name: 'Subscriptions',
-      current: 25,
-      target: 50,
-      left: 25,
-      color: 'primary',
-    },
-    {
-      id: 2,
-      name: 'Food and booze',
-      current: 880,
-      target: 1000,
-      left: 120,
-      color: 'error',
-    },
-    {
-      id: 3,
-      name: 'Savings',
-      current: 1950,
-      target: 2000,
-      left: 50,
-      color: 'success',
-    },
-  ];
+// Extra translations needed for this component
+const goalsTranslations = {
+  en: {
+    daysLeft: 'days left',
+    saved: 'saved',
+    goal: 'goal',
+    addGoal: 'Add Goal',
+    loading: 'Loading goals...',
+    error: 'Error loading goals',
+    noGoals: 'No financial goals found. Create your first goal to track your progress.',
+  },
+  ru: {
+    daysLeft: 'дней осталось',
+    saved: 'накоплено',
+    goal: 'цель',
+    addGoal: 'Добавить цель',
+    loading: 'Загрузка целей...',
+    error: 'Ошибка загрузки целей',
+    noGoals: 'Финансовые цели не найдены. Создайте свою первую цель для отслеживания прогресса.',
+  }
+};
+
+export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
+  // Get goals data from the dashboard data provider
+  const { goals } = useDashboardData();
   
-  // Function to calculate progress percentage
-  const calculateProgress = (current: number, target: number) => {
+  // Get additional translations
+  const gt = goalsTranslations[locale === 'ru' ? 'ru' : 'en'];
+  
+  // Calculate progress percentage
+  const calculateProgress = (current: number, target: number): number => {
     return Math.min(Math.round((current / target) * 100), 100);
   };
+  
+  // Loading state
+  if (goals.loading) {
+    return (
+      <Card>
+        <CardHeader className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">{t.goals}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="flex justify-center items-center p-8">
+            <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (goals.error) {
+    return (
+      <Card>
+        <CardHeader className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">{t.goals}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
+            {goals.error}
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Empty state
+  if (goals.data.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">{t.goals}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 text-center rounded-md mb-4">
+            {gt.noGoals}
+          </div>
+          <Button fullWidth variant="outline">{gt.addGoal}</Button>
+        </CardBody>
+      </Card>
+    );
+  }
   
   return (
     <Card>
@@ -54,36 +106,71 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t }) => {
         </Button>
       </CardHeader>
       <CardBody className="space-y-4">
-        {goals.map((goal) => {
+        {goals.data.map((goal) => {
           const progress = calculateProgress(goal.current, goal.target);
           
-          // Determine color class based on goal color
-          const colorClass = 
-            goal.color === 'primary' ? 'bg-primary-500' :
-            goal.color === 'error' ? 'bg-red-500' :
-            goal.color === 'success' ? 'bg-green-500' :
-            'bg-blue-500';
-            
+          // Get color based on progress
+          let progressColor = 'bg-red-500';
+          if (progress >= 75) {
+            progressColor = 'bg-green-500';
+          } else if (progress >= 40) {
+            progressColor = 'bg-yellow-500';
+          }
+          
+          // Calculate days remaining
+          const today = new Date();
+          const deadline = new Date(goal.deadline);
+          const daysRemaining = Math.max(
+            0,
+            Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+          );
+          
           return (
-            <div key={goal.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${colorClass}`}></div>
-                  <span className="font-medium">{goal.name}</span>
+            <motion.div 
+              key={goal.id}
+              className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              whileHover={{ scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-medium">{goal.name}</h3>
+                <Badge variant="primary" size="sm">
+                  {daysRemaining} {gt.daysLeft}
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                  <span>${goal.current.toFixed(2)} {gt.saved}</span>
+                  <span>${goal.target.toFixed(2)} {gt.goal}</span>
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  ${goal.left} left
-                </span>
+                
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                  <motion.div 
+                    className={`h-2.5 rounded-full ${progressColor}`}
+                    style={{ width: `${progress}%` }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
+                </div>
+                
+                <div className="text-right text-sm font-medium text-primary-600 dark:text-primary-400">
+                  {progress}%
+                </div>
               </div>
-              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${colorClass}`}
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-            </div>
+            </motion.div>
           );
         })}
+        
+        {/* Add Goal button */}
+        <Button
+          fullWidth
+          variant="outline"
+          className="mt-2"
+        >
+          + {gt.addGoal}
+        </Button>
       </CardBody>
     </Card>
   );

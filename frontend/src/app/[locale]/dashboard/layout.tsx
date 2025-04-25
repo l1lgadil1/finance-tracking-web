@@ -1,49 +1,53 @@
 'use client';
 
-import React from 'react';
-import { ProtectedRoute } from '@/components';
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { Locale } from '@/shared/lib/i18n';
-import { Header, Sidebar } from '@/widgets/DashboardLayout';
-import { useAuth } from '@/hooks';
+import { DashboardLayout } from '@/widgets/DashboardLayout';
 
-interface DashboardLayoutProps {
+export default function DashboardPageLayout({
+  children,
+}: {
   children: React.ReactNode;
-  params: {
-    locale: Locale;
-  };
-}
+}) {
+  const params = useParams();
+  const locale = (params?.locale as string || 'en') as Locale;
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth(locale);
 
-export default function DashboardLayout({ children, params: { locale } }: DashboardLayoutProps) {
-  const { user } = useAuth(locale);
-  
-  // Get the current path
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-  // Extract the part after the locale
-  const pathWithoutLocale = pathname.substring(pathname.indexOf('/', 1) || pathname.length);
-  const currentPage = pathWithoutLocale.replace('/', '') || 'dashboard';
-  const pageTitle = currentPage.charAt(0).toUpperCase() + currentPage.slice(1);
-  
-  return (
-    <ProtectedRoute locale={locale}>
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-        {/* Sidebar navigation */}
-        <Sidebar locale={locale} activeHref={pathWithoutLocale} />
-        
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Fixed header */}
-          <Header 
-            username={user?.email?.split('@')[0] || 'User'} 
-            email={user?.email || 'Loading...'}
-            pageName={pageTitle}
-          />
-          
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-800">
-            {children}
-          </div>
+  // Redirect to login if not authenticated and finished loading
+  useEffect(() => {
+    // Only redirect if we've finished checking auth state and user is not authenticated
+    if (!isLoading && isAuthenticated === false) {
+      router.push(`/${locale}/auth/login`);
+    }
+  }, [isLoading, isAuthenticated, router, locale]);
+
+  // Show loading screen if checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-16 h-16 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Only show the dashboard content if authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-t-4 border-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
         </div>
       </div>
-    </ProtectedRoute>
+    );
+  }
+
+  return (
+    <DashboardLayout locale={locale}>
+      {children}
+    </DashboardLayout>
   );
 } 

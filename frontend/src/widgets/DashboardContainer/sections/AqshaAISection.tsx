@@ -1,21 +1,79 @@
 import { FC } from 'react';
+import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardBody, CardHeader } from '@/shared/ui/Card';
-import { Button } from '@/shared/ui/Button';
-import { motion } from 'framer-motion';
+import { useDashboardData } from '../providers/DashboardDataProvider';
 
 const aiTranslations = {
   en: {
-    aqshaAI: 'AqshaAI',
-    spentLess: 'In this month you spent 30% less',
-    goToAI: 'Go to',
+    aqshaAI: 'AqshaAI Insights',
+    loading: 'Analyzing your financial data...',
+    error: 'Could not generate insights at this time',
+    noData: 'Add transactions to get personalized insights',
+    insights: {
+      title: 'Financial Insights',
+      highExpense: 'High expense category',
+      savingOpportunity: 'Saving opportunity',
+      budgetAlert: 'Budget alert',
+      positiveTrend: 'Positive trend',
+    },
+    tips: {
+      title: 'Money-Saving Tips',
+      subscriptions: 'Review your subscriptions',
+      diningOut: 'Consider cooking at home more',
+      energySaving: 'Reduce energy consumption',
+      autoInsurance: 'Compare auto insurance rates',
+    },
   },
   ru: {
-    aqshaAI: 'АкшаИИ',
-    spentLess: 'В этом месяце вы потратили на 30% меньше',
-    goToAI: 'Перейти',
+    aqshaAI: 'Аналитика AqshaAI',
+    loading: 'Анализ ваших финансовых данных...',
+    error: 'Не удалось создать аналитику',
+    noData: 'Добавьте транзакции, чтобы получить персонализированные советы',
+    insights: {
+      title: 'Финансовые инсайты',
+      highExpense: 'Высокие расходы',
+      savingOpportunity: 'Возможность сэкономить',
+      budgetAlert: 'Предупреждение о бюджете',
+      positiveTrend: 'Положительная тенденция',
+    },
+    tips: {
+      title: 'Советы по экономии',
+      subscriptions: 'Пересмотрите ваши подписки',
+      diningOut: 'Готовьте дома чаще',
+      energySaving: 'Сократите потребление энергии',
+      autoInsurance: 'Сравните тарифы автострахования',
+    },
   }
 };
+
+// Mock insights that would come from the AI backend
+const mockInsights = [
+  {
+    id: '1',
+    type: 'highExpense',
+    message: 'Your food spending is 30% higher than last month',
+    icon: '🍕',
+  },
+  {
+    id: '2',
+    type: 'savingOpportunity',
+    message: 'You could save $45 by canceling unused subscriptions',
+    icon: '💰',
+  },
+  {
+    id: '3',
+    type: 'budgetAlert',
+    message: 'You are close to exceeding your entertainment budget',
+    icon: '⚠️',
+  },
+  {
+    id: '4',
+    type: 'positiveTrend',
+    message: 'Great job! Your total savings increased by 10% this month',
+    icon: '🎉',
+  },
+];
 
 interface AqshaAISectionProps {
   locale: Locale;
@@ -23,45 +81,100 @@ interface AqshaAISectionProps {
 
 export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
   const t = aiTranslations[locale] || aiTranslations.en;
+  const { transactions } = useDashboardData();
   
+  // Loading state
+  if (transactions.loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="flex justify-center items-center p-8">
+            <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (transactions.error) {
+    return (
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
+            {t.error}
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Empty state (no transactions)
+  if (transactions.data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 text-center rounded-md">
+            {t.noData}
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+  
+  // Render insights from the AI
   return (
     <Card>
-      <CardHeader className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
-          <motion.div
-            whileHover={{ rotate: 10 }}
-            className="cursor-help"
-          >
-            ℹ️
-          </motion.div>
-        </div>
-        <Button variant="ghost" size="sm" rightIcon={<span>→</span>}>
-          {t.goToAI}
-        </Button>
+      <CardHeader>
+        <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
       </CardHeader>
-      <CardBody className="p-4">
-        <div className="bg-primary-50 dark:bg-primary-900/30 p-4 rounded-lg flex items-start gap-3">
-          <div className="w-10 h-10 bg-primary-100 dark:bg-primary-800 rounded-full flex items-center justify-center shrink-0 mt-1">
-            <span className="text-2xl">🤖</span>
-          </div>
-          <div>
-            <p className="text-gray-800 dark:text-gray-200">
-              {t.spentLess}
-            </p>
-            
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="col-span-2 bg-white dark:bg-gray-800 rounded p-2 text-center text-sm">
-                <span className="block font-medium text-green-600">-30%</span>
-                <span className="text-xs text-gray-500">vs last month</span>
+      <CardBody className="space-y-4">
+        <h3 className="font-medium text-sm text-gray-500 dark:text-gray-400">
+          {t.insights.title}
+        </h3>
+        
+        <div className="space-y-3">
+          {mockInsights.map((insight) => (
+            <motion.div 
+              key={insight.id}
+              className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              whileHover={{ scale: 1.01, x: 5 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              <div className="w-8 h-8 bg-primary-100 dark:bg-primary-800 rounded-full flex items-center justify-center text-xl">
+                {insight.icon}
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded p-2 text-center text-sm">
-                <span className="block font-medium text-primary-600">$1,850</span>
-                <span className="text-xs text-gray-500">total spent</span>
+              <div>
+                <p className="text-sm font-medium">
+                  {t.insights[insight.type as keyof typeof t.insights]}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {insight.message}
+                </p>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          ))}
         </div>
+        
+        <h3 className="font-medium text-sm text-gray-500 dark:text-gray-400 mt-4">
+          {t.tips.title}
+        </h3>
+        
+        <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+          <li>{t.tips.subscriptions}</li>
+          <li>{t.tips.diningOut}</li>
+          <li>{t.tips.energySaving}</li>
+          <li>{t.tips.autoInsurance}</li>
+        </ul>
       </CardBody>
     </Card>
   );
