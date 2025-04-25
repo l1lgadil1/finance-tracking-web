@@ -1,14 +1,21 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 interface RequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   headers?: Record<string, string>;
+  credentials?: RequestCredentials;
 }
 
 export interface ApiError {
   message: string;
   statusCode: number;
+}
+
+interface ApiErrorResponse {
+  message: string;
+  statusCode: number;
+  [key: string]: unknown;
 }
 
 /**
@@ -32,17 +39,31 @@ export async function request<T>(
     method: options.method,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+    credentials: 'include', // Include cookies in cross-origin requests
   };
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, config);
     
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData: ApiErrorResponse = { message: 'Something went wrong', statusCode: response.status };
+      
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // If response cannot be parsed as JSON, use default error
+        console.error('Error parsing error response:', e);
+      }
+      
       throw {
         message: errorData.message || 'Something went wrong',
         statusCode: response.status
       } as ApiError;
+    }
+    
+    // Handle empty responses (like for 204 No Content)
+    if (response.status === 204) {
+      return {} as T;
     }
     
     const data = await response.json();

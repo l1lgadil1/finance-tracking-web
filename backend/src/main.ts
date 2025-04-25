@@ -10,6 +10,20 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3000;
 
+  // Enable CORS
+  app.enableCors({
+    origin: [
+      'http://localhost:3000', // Next.js dev server
+      'http://localhost:3001', // Alternative dev port
+      'http://localhost:8080', // Potential Docker/container port
+      // Add production domains when deploying
+      // 'https://yourdomain.com',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  });
+
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(new ZodValidationPipe());

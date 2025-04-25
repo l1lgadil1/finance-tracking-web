@@ -1,8 +1,20 @@
-// UI Components
-export { ThemeToggle } from './ThemeToggle';
-export { LanguageSwitcher } from './LanguageSwitcher';
-export { Button } from './Button';
-export { Card, CardHeader, CardBody, CardFooter } from './Card';
-export { Input } from './Input';
-export { Badge } from './Badge';
-export { Avatar } from './Avatar'; 
+// Avatar
+export * from './Avatar';
+
+// Badge
+export * from './Badge';
+
+// Button
+export * from './Button';
+
+// Card
+export * from './Card';
+
+// Input
+export * from './Input';
+
+// Language Switcher
+export * from './LanguageSwitcher';
+
+// Theme Toggle
+export * from './ThemeToggle'; 
