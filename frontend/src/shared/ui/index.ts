@@ -10,6 +10,9 @@ export * from './Button';
 // Card
 export * from './Card';
 
+// Checkbox
+export * from './Checkbox';
+
 // Input
 export * from './Input';
 

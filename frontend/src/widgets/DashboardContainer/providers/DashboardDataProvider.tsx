@@ -118,7 +118,8 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
       const dateFrom = thirtyDaysAgo.toISOString();
       
       const transactionsData = await transactionApi.getAll({
-        dateFrom
+        dateFrom,
+        includeCategory: true
       });
       setTransactions(transactionsData);
     } catch (error) {

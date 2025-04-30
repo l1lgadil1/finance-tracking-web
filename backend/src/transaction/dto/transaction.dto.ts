@@ -16,15 +16,15 @@ export type TransactionType = z.infer<typeof TransactionTypeEnum>;
 const TransactionBaseSchema = z.object({
   type: TransactionTypeEnum,
   amount: z.number().positive('Amount must be positive'),
-  description: z.string().optional(),
+  description: z.string().nullable(),
   date: z.coerce.date(), // Coerce string/number to Date
   profileId: z.string().uuid('Invalid Profile ID'),
-  categoryId: z.string().uuid('Invalid Category ID').optional(),
-  accountId: z.string().uuid('Invalid Account ID').optional(), // Required for income/expense/debt
-  fromAccountId: z.string().uuid('Invalid From Account ID').optional(), // Required for transfer
-  toAccountId: z.string().uuid('Invalid To Account ID').optional(), // Required for transfer
-  contactName: z.string().optional(), // For debt
-  contactPhone: z.string().optional(), // For debt
+  categoryId: z.string().uuid('Invalid Category ID').nullable(),
+  accountId: z.string().uuid('Invalid Account ID').nullable(), // Required for income/expense/debt
+  fromAccountId: z.string().uuid('Invalid From Account ID').nullable(), // Required for transfer
+  toAccountId: z.string().uuid('Invalid To Account ID').nullable(), // Required for transfer
+  contactName: z.string().nullable(), // For debt
+  contactPhone: z.string().nullable(), // For debt
   // debtStatus is managed internally, not part of create/update DTO
 });
 

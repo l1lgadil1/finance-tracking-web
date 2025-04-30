@@ -181,33 +181,6 @@ export const DashboardContainer: FC<DashboardContainerProps> = ({ locale }) => {
             </motion.div>
           </div>
         </div>
-        
-        {/* Floating action buttons */}
-        <div className="fixed bottom-6 right-6 flex flex-col gap-4">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              className="rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-              aria-label="AqshaAI"
-            >
-              <span className="text-2xl">🤖</span>
-            </Button>
-          </motion.div>
-          
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              className="rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-              aria-label="Add new transaction"
-            >
-              <span className="text-2xl">+</span>
-            </Button>
-          </motion.div>
-        </div>
       </motion.div>
     </DashboardDataProvider>
   );

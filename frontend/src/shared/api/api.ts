@@ -38,9 +38,13 @@ export async function request<T>(
   const config: RequestInit = {
     method: options.method,
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
     credentials: 'include', // Include cookies in cross-origin requests
   };
+
+  // Only add body for non-GET requests
+  if (options.method !== 'GET' && options.body) {
+    config.body = JSON.stringify(options.body);
+  }
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, config);
@@ -80,10 +84,10 @@ export const api = {
   get: <T>(endpoint: string, options?: Omit<RequestOptions, 'method'>) => 
     request<T>(endpoint, { ...options, method: 'GET' }),
     
-  post: <T>(endpoint: string, body: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) => 
+  post: <T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) => 
     request<T>(endpoint, { ...options, method: 'POST', body }),
     
-  put: <T>(endpoint: string, body: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) => 
+  put: <T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) => 
     request<T>(endpoint, { ...options, method: 'PUT', body }),
     
   delete: <T>(endpoint: string, options?: Omit<RequestOptions, 'method'>) => 

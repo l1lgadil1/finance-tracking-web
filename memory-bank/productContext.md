@@ -1,48 +1,30 @@
-# Product Context: AqshaTracker Application
+# Product Context: AqshaTracker
 
 ## Why This Project Exists
+- To help users track, analyze, and manage their personal finances efficiently.
+- To provide actionable insights and visualizations for better financial decisions.
+- To offer a secure, user-centric platform for managing accounts, transactions, categories, goals, and subscriptions.
 
-To provide a personal finance tracking application that helps users manage their money effectively through an intuitive interface and robust backend.
-
-## Problem Solved
-
-Users need a reliable, secure, and user-friendly application to track and manage their financial data, including income, expenses, transfers, debts, budgets, and goals.
+## Problems It Solves
+- Centralizes all personal finance data in one place.
+- Enables users to categorize and filter transactions, set goals, and monitor progress.
+- Provides real-time analytics and (planned) AI-driven insights.
+- Ensures data privacy and ownership (all data scoped to user).
 
 ## How It Should Work
-
-### Backend Perspective
-- **User Management:** Allow users to register and log in securely.
-- **Data Storage:** Persist user-specific financial data (profiles, accounts, transactions, categories, goals) in a PostgreSQL database.
-- **API Access:** Expose a REST API for client applications (web, mobile) to interact with the data.
-- **Data Integrity:** Ensure data consistency, especially for transactions involving multiple accounts (transfers, debt repayments).
-- **Security:** Protect user data through authentication (JWT) and authorization (ensuring users can only access their own data).
-- **Validation:** Validate all incoming data to prevent errors and ensure consistency.
-
-### Frontend Perspective
-- **Clean, Intuitive Interface:** Provide a minimalist, blue-themed UI that's easy to navigate and visually appealing.
-- **Responsive Design:** Ensure the application works well on all devices (mobile, tablet, desktop).
-- **Real-time Updates:** Show changes to financial data in real-time without page refreshes.
-- **Data Visualization:** Present financial data in clear, informative charts and graphs.
-- **Customization:** Allow users to customize their experience (themes, language preferences).
-- **Accessibility:** Ensure the application is usable by people with disabilities.
-- **Offline Support:** (Future) Provide basic functionality when users are offline.
+- Users register/login securely; all data is private and user-specific.
+- Users can CRUD accounts, transactions, categories, and goals.
+- Transactions update account balances and support filtering by type, date, etc.
+- Dashboard provides charts, summaries, and (planned) AI insights.
+- Subscription and AI modules are being transitioned from mock to real implementations.
+- All features are accessible via a responsive, internationalized UI.
 
 ## User Experience Goals
-
-### Backend Influencing UX
-- **Responsiveness:** The API should respond quickly to client requests.
-- **Reliability:** Data should be stored accurately and consistently.
-- **Security:** Users must trust that their financial data is safe.
-- **Ease of Use (for Frontend Devs):** The API should be well-documented (Swagger) and follow predictable REST conventions.
-
-### Frontend UX
-- **Intuitive Navigation:** Users should instinctively understand how to use the application.
-- **Visual Clarity:** Information should be presented clearly with appropriate visual hierarchy.
-- **Consistent Design:** UI elements should be consistent throughout the application.
-- **Feedback:** Users should receive clear feedback on their actions.
-- **Performance:** The interface should be fast and responsive.
-- **Error Handling:** Errors should be presented in a user-friendly way.
-- **Personalization:** Users should feel the application adapts to their needs.
+- Fast, intuitive, and mobile-friendly interface.
+- Consistent theming (light/dark), clear data visualization.
+- Seamless navigation and feedback (loading, error states).
+- Multi-language support (English, Russian at minimum).
+- Accessibility and performance as first-class concerns.
 
 ## Core Entities
 

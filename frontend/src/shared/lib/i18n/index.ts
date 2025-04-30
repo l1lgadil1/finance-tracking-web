@@ -1,13 +1,61 @@
-export const locales = ['en', 'ru'] as const;
-export type Locale = typeof locales[number];
-export const defaultLocale = 'en';
+export type Locale = 'en' | 'ru';
+export const defaultLocale: Locale = 'en';
+export const locales: Locale[] = ['en', 'ru'];
 
-type Messages = {
-  [key: string]: string | Messages;
-};
+interface ThemeMessages {
+  light: string;
+  dark: string;
+  system: string;
+}
 
-type TranslationsType = {
-  [locale in Locale]: Messages;
+interface LanguageMessages {
+  en: string;
+  ru: string;
+}
+
+interface CommonMessages {
+  title: string;
+  theme: ThemeMessages;
+  language: LanguageMessages;
+}
+
+interface AuthMessages {
+  login: {
+    title: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    submitButton: string;
+    registerLink: string;
+    errorTitle: string;
+    invalidCredentials: string;
+    genericError: string;
+  };
+  register: {
+    title: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    confirmPasswordLabel: string;
+    confirmPasswordPlaceholder: string;
+    submitButton: string;
+    loginLink: string;
+    errorTitle: string;
+    emailExists: string;
+    genericError: string;
+  };
+  logout: string;
+}
+
+interface Messages {
+  common: CommonMessages;
+  auth: AuthMessages;
+}
+
+export type TranslationsType = {
+  [key in Locale]: Messages;
 };
 
 export const translations: TranslationsType = {
@@ -50,7 +98,8 @@ export const translations: TranslationsType = {
         errorTitle: 'Registration failed',
         emailExists: 'Email is already registered',
         genericError: 'An error occurred. Please try again later.'
-      }
+      },
+      logout: 'Logout'
     }
   },
   ru: {
@@ -92,7 +141,8 @@ export const translations: TranslationsType = {
         errorTitle: 'Ошибка регистрации',
         emailExists: 'Данный email уже зарегистрирован',
         genericError: 'Произошла ошибка. Пожалуйста, попробуйте позже.'
-      }
+      },
+      logout: 'Выйти'
     }
   }
 }; 

@@ -1,0 +1,36 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "send": "Send"
+  },
+  "aiAssistant": {
+    "title": "AI Assistant",
+    "description": "I'm your personal finance assistant. Ask me anything about your finances, and I'll help you make better financial decisions.",
+    "welcomeMessage": "Hello! How can I help you with your finances today?",
+    "inputPlaceholder": "Type your question here...",
+    "openAssistant": "Open AI Assistant"
+  },
+  "transaction": {
+    "newTransaction": "New Transaction",
+    "addTransaction": "Add Transaction",
+    "amount": "Amount",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter transaction description",
+    "account": "Account",
+    "selectAccount": "Select an account",
+    "category": "Category",
+    "selectCategory": "Select a category",
+    "date": "Date",
+    "types": {
+      "income": "Income",
+      "expense": "Expense",
+      "transfer": "Transfer",
+      "debtGive": "Gave Debt",
+      "debtTake": "Took Debt",
+      "debtRepay": "Repay Debt"
+    }
+  }
+} 

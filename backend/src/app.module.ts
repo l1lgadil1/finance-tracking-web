@@ -12,6 +12,7 @@ import { TransactionModule } from './transaction/transaction.module';
 import { GoalModule } from './goal/goal.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AiRequestLogModule } from './ai-request-log/ai-request-log.module';
+import { AiRecommendationsModule } from './ai-recommendations/ai-recommendations.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AiRequestLogModule } from './ai-request-log/ai-request-log.module';
     GoalModule,
     SubscriptionModule,
     AiRequestLogModule,
+    AiRecommendationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardBody, CardHeader } from '@/shared/ui/Card';
@@ -14,6 +14,7 @@ const overviewTranslations = {
     expensesByCategory: 'Expenses by Category',
     loading: 'Loading...',
     error: 'Error loading data',
+    uncategorized: 'Uncategorized',
   },
   ru: {
     financialOverview: 'Финансовый обзор',
@@ -24,6 +25,7 @@ const overviewTranslations = {
     expensesByCategory: 'Расходы по категориям',
     loading: 'Загрузка...',
     error: 'Ошибка загрузки данных',
+    uncategorized: 'Без категории',
   }
 };
 
@@ -41,6 +43,38 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
     accounts,
     transactions 
   } = useDashboardData();
+
+  // Calculate expense categories from transactions
+  const expenseCategories = useMemo(() => {
+    if (!transactions.data) return [];
+
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Get current month's expenses
+    const currentMonthExpenses = transactions.data.filter(t => 
+      t.type === 'expense' && new Date(t.date) >= firstDayOfMonth
+    );
+
+    // Group by category and sum amounts
+    const categoryMap = currentMonthExpenses.reduce((acc, transaction) => {
+      const categoryName = transaction.category?.name || t.uncategorized;
+      const categoryColor = transaction.category?.color;
+      if (!acc[categoryName]) {
+        acc[categoryName] = {
+          name: categoryName,
+          value: 0,
+          color: categoryColor || undefined
+        };
+      }
+      acc[categoryName].value += transaction.amount;
+      return acc;
+    }, {} as Record<string, { name: string; value: number; color?: string }>);
+
+    // Convert to array and sort by value
+    return Object.values(categoryMap)
+      .sort((a, b) => b.value - a.value);
+  }, [transactions.data, t.uncategorized]);
   
   // Loading state
   if (accounts.loading || transactions.loading) {
@@ -73,15 +107,6 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
       </Card>
     );
   }
-  
-  // Mock data for chart - in a real app we'd calculate this from transactions
-  const expenseCategories = [
-    { name: 'Food', value: 650 },
-    { name: 'Rent', value: 800 },
-    { name: 'Transport', value: 200 },
-    { name: 'Entertainment', value: 150 },
-    { name: 'Other', value: 50.75 },
-  ];
   
   return (
     <Card>
@@ -131,7 +156,7 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
           </motion.div>
         </div>
         
-        {/* Expense Categories Chart (placeholder) */}
+        {/* Expense Categories Chart */}
         <div>
           <h3 className="text-lg font-medium mb-3">{t.expensesByCategory}</h3>
           <div className="h-60 w-full bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
@@ -139,12 +164,19 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
             <div className="flex flex-wrap gap-2 p-4">
               {expenseCategories.map((category, index) => (
                 <motion.div 
-                  key={index} 
+                  key={category.name} 
                   className="flex items-center gap-2"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <div className={`w-3 h-3 rounded-full bg-primary-${(index + 3) * 100}`}></div>
-                  <span className="text-sm">{category.name}: ${category.value}</span>
+                  <div 
+                    className={`w-3 h-3 rounded-full ${
+                      category.color 
+                        ? '' 
+                        : `bg-primary-${((index % 5) + 3) * 100}`
+                    }`}
+                    style={category.color ? { backgroundColor: category.color } : undefined}
+                  ></div>
+                  <span className="text-sm">{category.name}: ${category.value.toFixed(2)}</span>
                 </motion.div>
               ))}
             </div>

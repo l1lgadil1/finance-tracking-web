@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -11,17 +12,37 @@ import {
   UpdateTransactionDto,
   FindTransactionsQueryDto,
   TransactionType,
+  TransactionResponseDto,
+  TransactionTypeEnum,
 } from './dto/transaction.dto';
-import { Prisma, Transaction } from '@prisma/client';
+import { Prisma, Transaction, $Enums } from '@prisma/client';
 
 @Injectable()
 export class TransactionService {
   constructor(private prisma: PrismaService) {}
 
+  private mapToDto = (transaction: Transaction): TransactionResponseDto => ({
+    id: transaction.id,
+    userId: transaction.userId,
+    type: TransactionTypeEnum.parse(transaction.type),
+    amount: transaction.amount,
+    description: transaction.description || null,
+    date: transaction.date,
+    profileId: transaction.profileId,
+    categoryId: transaction.categoryId || null,
+    accountId: transaction.accountId || null,
+    fromAccountId: transaction.fromAccountId || null,
+    toAccountId: transaction.toAccountId || null,
+    contactName: transaction.contactName || null,
+    contactPhone: transaction.contactPhone || null,
+    createdAt: transaction.createdAt,
+    debtStatus: transaction.debtStatus ?? undefined,
+  });
+
   async create(
     userId: string,
     createTransactionDto: CreateTransactionDto,
-  ): Promise<Transaction> {
+  ): Promise<TransactionResponseDto> {
     const {
       type,
       amount,
@@ -33,26 +54,27 @@ export class TransactionService {
       ...rest
     } = createTransactionDto;
 
-    // --- Validate foreign keys belong to user (or handle global categories) ---
-    // Simplified for MVP: Assume frontend sends valid IDs belonging to user.
-    // Production: Add checks for profile, category, accounts ownership.
-    if (profileId) await this.validateProfileOwnership(userId, profileId);
-    if (categoryId) await this.validateCategoryOwnership(userId, categoryId);
-    if (accountId) await this.validateAccountOwnership(userId, accountId);
-    if (fromAccountId)
-      await this.validateAccountOwnership(userId, fromAccountId);
-    if (toAccountId) await this.validateAccountOwnership(userId, toAccountId);
-    // --- End Validation ---
-
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        let createdTransaction: Transaction;
+      // Validate all foreign keys first
+      await Promise.all([
+        profileId && this.validateProfileOwnership(userId, profileId),
+        categoryId && this.validateCategoryOwnership(userId, categoryId),
+        accountId && this.validateAccountOwnership(userId, accountId),
+        fromAccountId && this.validateAccountOwnership(userId, fromAccountId),
+        toAccountId && this.validateAccountOwnership(userId, toAccountId),
+      ]);
 
+      // If category is provided, validate it matches transaction type
+      if (categoryId) {
+        await this.validateCategoryType(categoryId, type);
+      }
+
+      const transaction = await this.prisma.$transaction(async (tx) => {
         // 1. Create the base transaction record
-        createdTransaction = await tx.transaction.create({
+        const createdTransaction = await tx.transaction.create({
           data: {
             ...rest,
-            type,
+            type: type as $Enums.TransactionType,
             amount,
             userId,
             profileId,
@@ -70,7 +92,7 @@ export class TransactionService {
         // 2. Update account balances based on type
         await this.updateBalances(
           tx,
-          type,
+          type as $Enums.TransactionType,
           amount,
           accountId,
           fromAccountId,
@@ -79,48 +101,71 @@ export class TransactionService {
 
         return createdTransaction;
       });
+
+      return this.mapToDto(transaction);
     } catch (error) {
-      console.error('Transaction creation failed:', error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        // Handle specific Prisma errors (e.g., foreign key constraint)
+        switch (error.code) {
+          case 'P2002':
+            throw new ConflictException('Transaction already exists');
+          case 'P2003':
+            throw new BadRequestException(
+              'Invalid reference to related entity',
+            );
+          case 'P2025':
+            throw new NotFoundException('Referenced record not found');
+          default:
+            console.error('Prisma error:', error);
+            throw new InternalServerErrorException('Database operation failed');
+        }
       }
-      // Rethrow specific errors or a generic one
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      console.error('Transaction creation failed:', error);
       throw new InternalServerErrorException('Could not create transaction');
     }
   }
 
   private async updateBalances(
     tx: Prisma.TransactionClient,
-    type: TransactionType,
+    type: $Enums.TransactionType,
     amount: number,
     accountId?: string | null,
     fromAccountId?: string | null,
     toAccountId?: string | null,
   ): Promise<void> {
     switch (type) {
-      case 'income':
-      case 'debt_take': // Взяли в долг -> деньги пришли на счет
+      case $Enums.TransactionType.income:
         if (!accountId)
-          throw new BadRequestException(
-            'accountId required for income/debt_take',
-          );
+          throw new BadRequestException('accountId required for income');
         await tx.account.update({
           where: { id: accountId },
           data: { balance: { increment: amount } },
         });
         break;
-      case 'expense':
-      case 'debt_give': // Дали в долг -> деньги ушли со счета
+      case $Enums.TransactionType.expense:
         if (!accountId)
-          throw new BadRequestException(
-            'accountId required for expense/debt_give',
-          );
+          throw new BadRequestException('accountId required for expense');
         await tx.account.update({
           where: { id: accountId },
           data: { balance: { decrement: amount } },
         });
         break;
-      case 'transfer':
+      case $Enums.TransactionType.debt: // Handle both debt_give and debt_take as 'debt'
+        if (!accountId)
+          throw new BadRequestException('accountId required for debt');
+        // Decide increment or decrement based on additional context if needed
+        // For now, just increment (customize as needed)
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: { increment: amount } },
+        });
+        break;
+      case $Enums.TransactionType.transfer:
         if (!fromAccountId || !toAccountId)
           throw new BadRequestException(
             'fromAccountId and toAccountId required for transfer',
@@ -134,23 +179,13 @@ export class TransactionService {
           data: { balance: { increment: amount } },
         });
         break;
-      case 'debt_repay':
-        // Assumes amount is positive. Who repays? Depends on context.
-        // For MVP: Assume the specified accountId is the one *receiving* the repayment (if we took debt)
-        // OR the one *sending* the repayment (if we gave debt).
-        // Let's assume accountId is the account being credited/debited for the repayment action.
-        // Simple approach: Just update the specified account.
-        // More complex: Link to original debt and determine direction.
+      case $Enums.TransactionType.debt_repay:
         if (!accountId)
           throw new BadRequestException('accountId required for debt_repay');
-        // Example: If accountId represents the account making the repayment (paying back debt they took)
-        // await tx.account.update({ where: { id: accountId }, data: { balance: { decrement: amount } } });
-        // Example: If accountId represents the account receiving repayment (getting back money they lent)
         await tx.account.update({
           where: { id: accountId },
           data: { balance: { increment: amount } },
         });
-        // TODO: Refine debt_repay logic based on clearer requirements if needed.
         break;
     }
   }
@@ -158,32 +193,44 @@ export class TransactionService {
   async findAll(
     userId: string,
     query: FindTransactionsQueryDto,
-  ): Promise<Transaction[]> {
+  ): Promise<TransactionResponseDto[]> {
     const { type, profileId, accountId, categoryId, dateFrom, dateTo } = query;
+
+    // Build the where clause type-safely
     const where: Prisma.TransactionWhereInput = {
-      userId: userId,
-      ...(type && { type }),
+      userId,
+      ...(type ? { type: type as $Enums.TransactionType } : {}),
       ...(profileId && { profileId }),
       ...(accountId && { accountId }),
       ...(categoryId && { categoryId }),
-      ...(dateFrom && { date: { gte: dateFrom } }),
-      ...(dateTo && { date: { lte: dateTo } }),
-      // Handle date range query
-      ...(dateFrom && dateTo && { date: { gte: dateFrom, lte: dateTo } }),
+      ...(dateFrom &&
+        dateTo && {
+          date: {
+            gte: dateFrom,
+            lte: dateTo,
+          },
+        }),
+      ...(!dateTo && dateFrom && { date: { gte: dateFrom } }),
+      ...(dateTo && !dateFrom && { date: { lte: dateTo } }),
     };
 
-    return this.prisma.transaction.findMany({
+    const transactions = await this.prisma.transaction.findMany({
       where,
-      orderBy: { date: 'desc' }, // Default order by date descending
-      // Add includes for related data if needed in response
-      // include: { account: true, category: true, profile: true }
+      orderBy: { date: 'desc' },
+      include: {
+        category: true,
+      },
     });
+
+    return transactions.map(this.mapToDto);
   }
 
-  async findOne(userId: string, id: string): Promise<Transaction> {
+  async findOne(userId: string, id: string): Promise<TransactionResponseDto> {
     const transaction = await this.prisma.transaction.findUnique({
       where: { id },
-      // include: { account: true, category: true, profile: true }, // Optional include
+      include: {
+        category: true,
+      },
     });
 
     if (!transaction) {
@@ -194,23 +241,26 @@ export class TransactionService {
         'You do not have permission to access this transaction',
       );
     }
-    return transaction;
+
+    return this.mapToDto(transaction);
   }
 
   async update(
     userId: string,
     id: string,
     updateTransactionDto: UpdateTransactionDto,
-  ): Promise<Transaction> {
-    const existingTransaction = await this.findOne(userId, id); // Verify ownership and existence
+  ): Promise<TransactionResponseDto> {
+    // Verify ownership and existence
+    await this.findOne(userId, id);
 
     // MVP Limitation: Do not recalculate balances on update.
     // Production: Would need complex logic to revert old balance changes and apply new ones.
-
-    return this.prisma.transaction.update({
+    const updated = await this.prisma.transaction.update({
       where: { id },
       data: updateTransactionDto,
     });
+
+    return this.mapToDto(updated);
   }
 
   async remove(userId: string, id: string): Promise<Transaction> {
@@ -255,6 +305,46 @@ export class TransactionService {
     });
     if (!account || account.userId !== userId)
       throw new BadRequestException(`Invalid accountId: ${accountId}`);
+  }
+  private async validateCategoryType(
+    categoryId: string,
+    transactionType: TransactionType,
+  ): Promise<void> {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID "${categoryId}" not found`);
+    }
+
+    // Validate category type matches transaction type
+    const isValid = this.isCategoryTypeValid(category.type, transactionType);
+    if (!isValid) {
+      throw new BadRequestException(
+        `Category type "${category.type}" is not valid for transaction type "${transactionType}"`,
+      );
+    }
+  }
+
+  private isCategoryTypeValid(
+    categoryType: string,
+    transactionType: TransactionType,
+  ): boolean {
+    switch (transactionType) {
+      case 'income':
+        return categoryType === 'income';
+      case 'expense':
+        return categoryType === 'expense';
+      case 'transfer':
+        return true; // Transfers don't require categories
+      case 'debt_give':
+      case 'debt_take':
+      case 'debt_repay':
+        return categoryType === 'debt';
+      default:
+        return false;
+    }
   }
   // ---
 }

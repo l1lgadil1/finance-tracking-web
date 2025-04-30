@@ -19,10 +19,6 @@ const aiTranslations = {
     },
     tips: {
       title: 'Money-Saving Tips',
-      subscriptions: 'Review your subscriptions',
-      diningOut: 'Consider cooking at home more',
-      energySaving: 'Reduce energy consumption',
-      autoInsurance: 'Compare auto insurance rates',
     },
   },
   ru: {
@@ -39,41 +35,9 @@ const aiTranslations = {
     },
     tips: {
       title: 'Советы по экономии',
-      subscriptions: 'Пересмотрите ваши подписки',
-      diningOut: 'Готовьте дома чаще',
-      energySaving: 'Сократите потребление энергии',
-      autoInsurance: 'Сравните тарифы автострахования',
     },
   }
 };
-
-// Mock insights that would come from the AI backend
-const mockInsights = [
-  {
-    id: '1',
-    type: 'highExpense',
-    message: 'Your food spending is 30% higher than last month',
-    icon: '🍕',
-  },
-  {
-    id: '2',
-    type: 'savingOpportunity',
-    message: 'You could save $45 by canceling unused subscriptions',
-    icon: '💰',
-  },
-  {
-    id: '3',
-    type: 'budgetAlert',
-    message: 'You are close to exceeding your entertainment budget',
-    icon: '⚠️',
-  },
-  {
-    id: '4',
-    type: 'positiveTrend',
-    message: 'Great job! Your total savings increased by 10% this month',
-    icon: '🎉',
-  },
-];
 
 interface AqshaAISectionProps {
   locale: Locale;
@@ -81,10 +45,10 @@ interface AqshaAISectionProps {
 
 export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
   const t = aiTranslations[locale] || aiTranslations.en;
-  const { transactions } = useDashboardData();
+  const { transactions, aiRecommendations } = useDashboardData();
   
   // Loading state
-  if (transactions.loading) {
+  if (transactions.loading || aiRecommendations.loading) {
     return (
       <Card>
         <CardHeader>
@@ -100,7 +64,7 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
   }
 
   // Error state
-  if (transactions.error) {
+  if (transactions.error || aiRecommendations.error) {
     return (
       <Card>
         <CardHeader>
@@ -143,7 +107,7 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
         </h3>
         
         <div className="space-y-3">
-          {mockInsights.map((insight) => (
+          {aiRecommendations.data?.insights.map((insight) => (
             <motion.div 
               key={insight.id}
               className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
@@ -170,10 +134,9 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
         </h3>
         
         <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-          <li>{t.tips.subscriptions}</li>
-          <li>{t.tips.diningOut}</li>
-          <li>{t.tips.energySaving}</li>
-          <li>{t.tips.autoInsurance}</li>
+          {aiRecommendations.data?.tips.map((tip, index) => (
+            <li key={index}>{tip}</li>
+          ))}
         </ul>
       </CardBody>
     </Card>

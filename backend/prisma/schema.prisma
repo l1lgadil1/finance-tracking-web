@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TransactionType {
+  income
+  expense
+  transfer
+  debt_give
+  debt_take
+  debt_repay
+}
+
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
@@ -54,12 +63,12 @@ model Category {
 }
 
 model Transaction {
-  id            String    @id @default(uuid())
-  type          String
+  id            String         @id @default(uuid())
+  type          TransactionType
   amount        Float
   description   String?
   date          DateTime
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime       @default(now())
   userId        String
   profileId     String
   categoryId    String?
@@ -69,10 +78,10 @@ model Transaction {
   contactName   String?
   contactPhone  String?
   debtStatus    String?
-  account       Account?  @relation("TransactionAccount", fields: [accountId], references: [id])
-  category      Category? @relation(fields: [categoryId], references: [id])
-  profile       Profile   @relation(fields: [profileId], references: [id])
-  user          User      @relation(fields: [userId], references: [id])
+  account       Account?       @relation("TransactionAccount", fields: [accountId], references: [id])
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  profile       Profile        @relation(fields: [profileId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
 }
 
 model Goal {

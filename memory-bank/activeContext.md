@@ -1,44 +1,42 @@
-# Active Context: AqshaTracker Project
+# Active Context
 
 ## Current Focus
 
-- **Frontend Design System:** Implemented a comprehensive UI design system with blue and white color palette, featuring modern, minimalistic components.
-- **Feature Sliced Design Architecture:** Restructured the frontend to follow Feature Sliced Design (FSD) architecture for better organization and scalability.
-- **Component Library:** Created reusable UI components with responsive design and dark mode support.
-- **Localization System:** Implementing comprehensive localization for all components with structured translation dictionaries.
+- Strict separation of UI and business logic (moving logic to hooks/services)
+- Removing all mock data; integrating real backend API throughout
+- Ensuring type safety with TypeScript
+- Implementing robust loading and error states
+- Organizing code by Feature Sliced Design (FSD)
 
 ## Recent Changes
 
-- Implemented a blue-themed design system with color tokens, spacing, typography, and other design variables
-- Created core UI components: Button, Card, Input, Badge, Avatar
-- Developed a UI showcase page to demonstrate all components
-- Updated application Header with modern navigation and user profile
-- Enhanced the transaction chart with filtering options
-- Implemented responsive layouts for dashboard and components
-- Fixed locale handling in the internationalization system
-- Set up proper CSS variables for theming with dark mode support
-- Added localization dictionaries to LandingPage component with English and Russian translations
-- Established component-level localization pattern for consistent implementation across the application
+- Migrated sidebar icons to React Icons
+- Improved component and type organization
+- Replaced mock analytics with real transaction data
+- Added loading/error states to charts
+- Implemented dark/light mode in charts
+- Integrated real transaction data in analytics (15-day aggregation)
 
 ## Next Steps
 
-- **Continue Localization:** Add translation dictionaries to remaining components.
-- **Implement Authentication Pages:** Create login and registration pages using the new design system.
-- **Build Transaction Management:** Create transaction listing, filtering, and CRUD operations.
-- **Account Management:** Implement account creation, editing, and dashboard views.
-- **Category Management:** Build category management interface.
-- **Connect to Backend:** Integrate with the backend API endpoints.
-- **Form Validation:** Add comprehensive form validation using client-side validation.
-- **Responsive Enhancements:** Ensure full responsiveness across all screen sizes.
-- **Testing:** Add unit and integration tests for components and features.
+1. Implement real AI insights in analytics
+2. Add interactive features to transaction chart (date range filtering)
+3. Replace mock subscription module with real implementation
+4. Add error boundaries for improved resilience
+5. Begin unit and E2E test coverage for business logic and flows
 
-## Active Decisions & Considerations
+## Technical Decisions
 
-- Using Tailwind CSS for styling with custom CSS variables for theme colors.
-- Using Framer Motion for animations to enhance UX.
-- Component localization should follow the established pattern with locale-specific translation objects.
-- Always reuse existing UI components from shared/ui directory before creating new ones.
-- Need to resolve TypeScript issues with motion components (particularly Button component).
-- Consider data visualization libraries beyond Recharts if more complex charts are needed.
-- Evaluate performance optimization needs as components grow.
-- Plan for component storybook documentation. 
+- Feature Sliced Design (FSD) for frontend
+- TypeScript for type safety
+- Zustand for global state, React Query for server state
+- Jest/RTL for unit/component tests, Cypress for E2E
+- Recharts for data visualization
+
+## Known Issues
+
+- Mock data remains in subscription module
+- Incomplete error handling and loading states in some components
+- Incomplete test coverage
+- AI insights placeholder needs real implementation
+- Ongoing: UI/logic separation, type safety, error handling 

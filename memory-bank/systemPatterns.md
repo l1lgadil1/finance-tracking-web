@@ -1,171 +1,28 @@
-# System Patterns: AqshaTracker Project
+# System Patterns: AqshaTracker
 
 ## Architecture
+- Backend: Modular NestJS REST API, Prisma ORM, PostgreSQL, JWT auth, Zod validation, Swagger docs.
+- Frontend: Feature Sliced Design (FSD), React, Zustand, Tailwind, i18n, dark/light theme, responsive design.
 
-### Backend
-- **Monolithic Backend:** A single NestJS application serving a REST API.
-- **Modular Design:** The application is structured into feature modules (e.g., `AuthModule`, `TransactionModule`) following NestJS conventions.
-- **Database Interaction:** Centralized through a global `PrismaModule` and `PrismaService` using Prisma ORM.
+## Key Patterns
+- Strict separation of UI and business logic (hooks/services for logic, presentational components for UI).
+- All backend CRUD operations scoped to authenticated user (data ownership enforced).
+- DTO validation via nestjs-zod; all endpoints validated and documented.
+- Error and loading states handled at component and API layer.
+- State management: Zustand (global), React Query (server), local state for UI.
+- API integration: Typed API clients, error boundaries, loading skeletons.
+- Theming and i18n: Component-level translation dictionaries, theme variables.
+- Testing: Jest/RTL for unit/component, Cypress for E2E.
 
-### Frontend
-- **Feature Sliced Design (FSD):** Architecture that organizes code into layers and slices.
-- **Next.js Application:** Built with Next.js App Router and React.
-- **Modular Components:** Reusable UI components with well-defined props and styling.
-- **Internationalization:** Multi-language support with locale-based routing.
+## Component Relationships
+- Shared UI components reused across features.
+- Feature modules encapsulate business logic and state.
+- Entities layer provides data models and API integration.
+- Widgets/pages compose features and entities for user flows.
 
-## Key Technical Decisions
-
-### Backend
-- **Framework:** NestJS (TypeScript).
-- **Database:** PostgreSQL.
-- **ORM:** Prisma.
-- **Authentication:** JWT (JSON Web Tokens) managed by Passport.js (`passport-jwt` strategy).
-- **Password Hashing:** `bcrypt`.
-- **Validation:** `zod` via `nestjs-zod` integration for DTOs.
-- **API Documentation:** Swagger (`@nestjs/swagger`).
-- **Configuration:** Environment variables managed by `@nestjs/config`.
-
-### Frontend
-- **Framework:** Next.js with App Router (React).
-- **Styling:** Tailwind CSS with custom theme variables.
-- **State Management:** Zustand for global state.
-- **Animation:** Framer Motion for component animations.
-- **Internationalization:** Custom i18n implementation with locale detection.
-- **Visualization:** Recharts for data visualization.
-- **Theme Switching:** next-themes for theme management.
-- **API Client:** Custom API client with fetch wrapper.
-
-## Frontend Architecture (Feature Sliced Design)
-
-```mermaid
-flowchart TD
-    App[app] --> Pages[pages]
-    Pages --> Widgets[widgets]
-    Widgets --> Features[features]
-    Features --> Entities[entities]
-    Widgets --> Entities
-    Pages --> Entities
-    Entities --> Shared[shared]
-    Features --> Shared
-    Widgets --> Shared
-    Pages --> Shared
-```
-
-### Layers Explanation
-- **app:** Application initialization, global providers, styles, and configuration
-- **pages:** Pages/screens that correspond to routes in the application
-- **widgets:** Complex, composite blocks, used within pages
-- **features:** User interactions that implement business logic
-- **entities:** Business entities and their operations
-- **shared:** Reusable infrastructure code (UI, API, utils, etc.)
-
-### Segments in Each Layer
-Each layer can have these segments:
-- **ui:** UI components
-- **model:** Business logic (store, state)
-- **api:** API interactions
-- **lib:** Utils/helpers
-- **config:** Constants, configuration
-
-## Component Relationships (High-Level)
-
-### Backend
-
-```mermaid
-flowchart TD
-    Client[Client Application] -->|HTTP Request| API{REST API Gateway}
-
-    subgraph Backend [Backend (NestJS Application)]
-        API --> Controller
-        Controller -->|Uses| Service
-        Service -->|Uses| PrismaService[PrismaService]
-        Controller -->|Uses DTOs with| ZodValidation[nestjs-zod Pipe]
-        Controller -->|Protected by| JwtAuthGuard[JwtAuthGuard]
-        JwtAuthGuard -->|Uses| PassportJwtStrategy[Passport JWT Strategy]
-        PassportJwtStrategy -->|Uses| AuthService
-    end
-
-    PrismaService -->|Talks to| DB[(PostgreSQL Database)]
-```
-
-### Frontend
-
-```mermaid
-flowchart TD
-    Browser -->|HTTP Request| NextJS[Next.js App Router]
-
-    subgraph Frontend [Frontend (Next.js Application)]
-        NextJS --> LocaleRouter[Locale Router]
-        LocaleRouter --> Pages[Pages]
-        
-        Pages -->|Composes| Widgets[Widgets]
-        Pages -->|Uses| Features[Features]
-        
-        Widgets -->|Composes| Components[UI Components]
-        Widgets -->|Uses| Features
-        
-        Features -->|Uses| Entities[Entity APIs]
-        Features -->|Uses| Components
-        
-        Entities -->|Uses| ApiClient[API Client]
-        
-        ApiClient -->|HTTP Request| BackendAPI[Backend API]
-        
-        subgraph UILayer [UI Layer]
-            Components -->|Styled with| ThemeVars[Theme Variables]
-            ThemeVars -->|Light/Dark| ThemeProvider[Theme Provider]
-        end
-    end
-```
-
-## Design Patterns
-
-### Backend
-- **Dependency Injection:** Core to NestJS.
-- **Module Pattern:** Encapsulating features.
-- **Service Layer:** Business logic abstraction.
-- **Repository Pattern (Implicit via Prisma):** Data access abstraction.
-- **Decorator Pattern:** Used extensively by NestJS (e.g., `@Controller`, `@Injectable`, `@Get`, custom decorators like `@CurrentUser`).
-- **Middleware/Pipes/Guards:** Handling cross-cutting concerns (validation, authentication, logging).
-
-### Frontend
-- **Atomic Design (Partial):** Building from small components to larger compositions.
-- **Feature Sliced Design:** Organizing code into layers and slices.
-- **Component Composition:** Building complex UIs from smaller, reusable components.
-- **Component Reuse Strategy:** Always check for and reuse existing components in `shared/ui` directory before creating new ones. Adapt existing components with props rather than creating duplicates with minor variations.
-- **Custom Hooks:** Encapsulating reusable stateful logic.
-- **Provider Pattern:** Used for theme, localization, and state context.
-- **Controlled Components:** For form elements and interactive components.
-- **CSS-in-JS with Tailwind:** Using utility classes with custom variables.
-
-## Localization Pattern
-
-### Components Localization
-- **Component-Level Translations:** Each component that contains user-facing text should have its own localization dictionaries.
-- **Dictionary Structure:** Organize translations as nested objects by locale with semantic keys.
-- **Implementation Pattern:**
-  ```tsx
-  // Component localization pattern
-  const componentTranslations = {
-    en: {
-      section: {
-        title: 'English Title',
-        subtitle: 'English subtitle'
-      },
-      // Other sections...
-    },
-    ru: {
-      section: {
-        title: 'Russian Title',
-        subtitle: 'Russian subtitle'
-      },
-      // Other sections...
-    }
-  };
-  
-  // Access translations
-  const t = componentTranslations[locale as Locale] || componentTranslations.en;
-  ```
-- **Global Translations:** Common UI elements (navigation, footer, etc.) should use the global translations from `translations` in the i18n module.
-- **Fallback Handling:** Always provide fallbacks to English when accessing translations.
-- **Type Safety:** Use proper type assertions or type definitions for nested translation objects. 
+## Technical Decisions
+- Use of React Icons for UI consistency.
+- Recharts for data visualization.
+- All forms validated client-side and server-side.
+- Responsive/mobile-first layouts.
+- Ongoing: Remove all mock data, replace with real API integration.

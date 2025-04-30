@@ -9,9 +9,9 @@ import { authApi } from '@/features/auth/auth-api';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  params: {
+  params: Promise<{
     locale: Locale;
-  };
+  }>;
 }
 
 // Translations
@@ -24,7 +24,8 @@ const translations = {
   },
 };
 
-export default function AuthLayout({ children, params: { locale } }: AuthLayoutProps) {
+export default function AuthLayout({ children, params }: AuthLayoutProps) {
+  const { locale } = React.use(params);
   const t = translations[locale];
   const router = useRouter();
   const pathname = usePathname();
@@ -69,9 +70,6 @@ export default function AuthLayout({ children, params: { locale } }: AuthLayoutP
             <span className="font-bold text-lg text-primary-500 mr-1">Aqsha</span>
             <span className="font-medium">Tracker</span>
           </Link>
-        </div>
-        <div>
-          {t.poweredBy} <a href="https://nestjs.com" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">NestJS</a> &amp; <a href="https://nextjs.org" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">Next.js</a>
         </div>
       </footer>
     </div>

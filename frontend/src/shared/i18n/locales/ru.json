@@ -1,0 +1,36 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "send": "Отправить"
+  },
+  "aiAssistant": {
+    "title": "AI Ассистент",
+    "description": "Я ваш личный финансовый помощник. Спросите меня о чем угодно касательно ваших финансов, и я помогу вам принимать лучшие финансовые решения.",
+    "welcomeMessage": "Здравствуйте! Как я могу помочь вам с финансами сегодня?",
+    "inputPlaceholder": "Введите ваш вопрос здесь...",
+    "openAssistant": "Открыть AI Ассистента"
+  },
+  "transaction": {
+    "newTransaction": "Новая транзакция",
+    "addTransaction": "Добавить транзакцию",
+    "amount": "Сумма",
+    "description": "Описание",
+    "descriptionPlaceholder": "Введите описание транзакции",
+    "account": "Счет",
+    "selectAccount": "Выберите счет",
+    "category": "Категория",
+    "selectCategory": "Выберите категорию",
+    "date": "Дата",
+    "types": {
+      "income": "Доход",
+      "expense": "Расход",
+      "transfer": "Перевод",
+      "debtGive": "Дал в долг",
+      "debtTake": "Взял в долг",
+      "debtRepay": "Погасить долг"
+    }
+  }
+} 
