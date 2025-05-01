@@ -2,7 +2,7 @@ import { api } from '@/shared/api/api';
 
 export interface Goal {
   id: string;
-  name: string;
+  title: string;
   target: number;
   current: number;
   deadline: string;

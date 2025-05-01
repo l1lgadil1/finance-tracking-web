@@ -1,6 +1,6 @@
 'use client';
 
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardBody, CardHeader } from '@/shared/ui/Card';
@@ -12,6 +12,7 @@ import { AnalyticsSection } from './sections/AnalyticsSection';
 import { GoalsSection } from './sections/GoalsSection';
 import { TransactionsSection } from './sections/TransactionsSection';
 import { AqshaAISection } from './sections/AqshaAISection';
+import { GoalModal } from '@/entities/goal/ui/GoalModal';
 
 // Define translations for the dashboard
 const dashboardTranslations = {
@@ -35,7 +36,8 @@ const dashboardTranslations = {
     analytics: 'Brief analytics: income/expense graph for the month',
     recentTxs: 'Recent transactions (last 5-10)',
     tips: 'Goals/notifications/tips from AI assistant',
-    quickActionsTip: 'Quick actions: +Income, +Expense'
+    quickActionsTip: 'Quick actions: +Income, +Expense',
+    addGoal: 'Add Goal'
   },
   ru: {
     welcome: 'Добро пожаловать',
@@ -57,7 +59,8 @@ const dashboardTranslations = {
     analytics: 'Краткая аналитика: график доходов/расходов за месяц',
     recentTxs: 'Недавние транзакции (последние 5-10)',
     tips: 'Цели/уведомления/советы от ИИ-ассистента',
-    quickActionsTip: 'Быстрые действия: +Доход, +Расход'
+    quickActionsTip: 'Быстрые действия: +Доход, +Расход',
+    addGoal: 'Добавить цель'
   }
 };
 
@@ -67,6 +70,7 @@ interface DashboardContainerProps {
 
 export const DashboardContainer: FC<DashboardContainerProps> = ({ locale }) => {
   const t = dashboardTranslations[locale] || dashboardTranslations.en;
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   
   // Animation variants for staggered animation
   const containerVariants = {
@@ -88,6 +92,14 @@ export const DashboardContainer: FC<DashboardContainerProps> = ({ locale }) => {
         duration: 0.5
       }
     }
+  };
+
+  const handleOpenGoalModal = () => {
+    setIsGoalModalOpen(true);
+  };
+
+  const handleCloseGoalModal = () => {
+    setIsGoalModalOpen(false);
   };
 
   return (
@@ -149,8 +161,9 @@ export const DashboardContainer: FC<DashboardContainerProps> = ({ locale }) => {
                     variant="primary" 
                     leftIcon={<span className="text-xl">+</span>} 
                     fullWidth
+                    onClick={handleOpenGoalModal}
                   >
-                    {t.income}
+                    {t.addGoal}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -163,25 +176,17 @@ export const DashboardContainer: FC<DashboardContainerProps> = ({ locale }) => {
               </Card>
             </motion.div>
             
-            {/* Dashboard Purpose Section (visible in the sample image) */}
-            <motion.div variants={itemVariants}>
-              <Card className="bg-gray-50 dark:bg-gray-800">
-                <CardBody>
-                  <p className="font-medium">{t.purpose}</p>
-                  <p className="font-medium mt-2">{t.blocks}:</p>
-                  <ul className="list-disc pl-6 mt-1 space-y-1 text-sm">
-                    <li>{t.balance}</li>
-                    <li>{t.analytics}</li>
-                    <li>{t.recentTxs}</li>
-                    <li>{t.tips}</li>
-                    <li>{t.quickActionsTip}</li>
-                  </ul>
-                </CardBody>
-              </Card>
-            </motion.div>
+    
           </div>
         </div>
       </motion.div>
+      
+      {/* Global Goal Modal */}
+      <GoalModal
+        isOpen={isGoalModalOpen}
+        onClose={handleCloseGoalModal}
+        locale={locale}
+      />
     </DashboardDataProvider>
   );
 }; 

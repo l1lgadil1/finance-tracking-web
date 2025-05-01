@@ -1,10 +1,11 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardBody, CardHeader } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
 import { useDashboardData } from '../providers/DashboardDataProvider';
+import { GoalModal } from '@/entities/goal/ui/GoalModal';
 
 interface GoalsSectionProps {
   locale: Locale;
@@ -39,13 +40,23 @@ const goalsTranslations = {
 export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
   // Get goals data from the dashboard data provider
   const { goals } = useDashboardData();
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   
   // Get additional translations
   const gt = goalsTranslations[locale === 'ru' ? 'ru' : 'en'];
   
   // Calculate progress percentage
-  const calculateProgress = (current: number, target: number): number => {
+  const calculateProgress = (current: number | null | undefined, target: number | null | undefined): number => {
+    if (!current || !target || target === 0) return 0;
     return Math.min(Math.round((current / target) * 100), 100);
+  };
+  
+  const handleOpenModal = () => {
+    setIsGoalModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsGoalModalOpen(false);
   };
   
   // Loading state
@@ -91,7 +102,14 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
           <div className="p-4 bg-gray-50 dark:bg-gray-800 text-center rounded-md mb-4">
             {gt.noGoals}
           </div>
-          <Button fullWidth variant="outline">{gt.addGoal}</Button>
+          <Button fullWidth variant="outline" onClick={handleOpenModal}>{gt.addGoal}</Button>
+          
+          {/* Goal Modal */}
+          <GoalModal
+            isOpen={isGoalModalOpen}
+            onClose={handleCloseModal}
+            locale={locale}
+          />
         </CardBody>
       </Card>
     );
@@ -107,6 +125,8 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
       </CardHeader>
       <CardBody className="space-y-4">
         {goals.data.map((goal) => {
+          if (!goal) return null;
+          
           const progress = calculateProgress(goal.current, goal.target);
           
           // Get color based on progress
@@ -119,7 +139,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
           
           // Calculate days remaining
           const today = new Date();
-          const deadline = new Date(goal.deadline);
+          const deadline = goal.deadline ? new Date(goal.deadline) : new Date();
           const daysRemaining = Math.max(
             0,
             Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -133,7 +153,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium">{goal.name}</h3>
+                <h3 className="font-medium">{goal.title || 'Unnamed Goal'}</h3>
                 <Badge variant="primary" size="sm">
                   {daysRemaining} {gt.daysLeft}
                 </Badge>
@@ -141,8 +161,8 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
               
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                  <span>${goal.current.toFixed(2)} {gt.saved}</span>
-                  <span>${goal.target.toFixed(2)} {gt.goal}</span>
+                  <span>${(goal.current || 0).toFixed(2)} {gt.saved}</span>
+                  <span>${(goal.target || 0).toFixed(2)} {gt.goal}</span>
                 </div>
                 
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
@@ -168,9 +188,17 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
           fullWidth
           variant="outline"
           className="mt-2"
+          onClick={handleOpenModal}
         >
           + {gt.addGoal}
         </Button>
+        
+        {/* Goal Modal */}
+        <GoalModal
+          isOpen={isGoalModalOpen}
+          onClose={handleCloseModal}
+          locale={locale}
+        />
       </CardBody>
     </Card>
   );
