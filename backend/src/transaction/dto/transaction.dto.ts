@@ -20,28 +20,44 @@ const TransactionBaseSchema = z.object({
   date: z.coerce.date(), // Coerce string/number to Date
   profileId: z.string().uuid('Invalid Profile ID'),
   categoryId: z.string().uuid('Invalid Category ID').nullable(),
-  accountId: z.string().uuid('Invalid Account ID').nullable(), // Required for income/expense/debt
-  fromAccountId: z.string().uuid('Invalid From Account ID').nullable(), // Required for transfer
-  toAccountId: z.string().uuid('Invalid To Account ID').nullable(), // Required for transfer
-  contactName: z.string().nullable(), // For debt
-  contactPhone: z.string().nullable(), // For debt
+  accountId: z.string().uuid('Invalid Account ID').nullable(),
+  fromAccountId: z
+    .string()
+    .uuid('Invalid From Account ID')
+    .optional()
+    .nullable(),
+  toAccountId: z.string().uuid('Invalid To Account ID').optional().nullable(),
+  contactName: z.string().optional().nullable(),
+  contactPhone: z.string().optional().nullable(),
+  relatedDebtId: z
+    .string()
+    .uuid('Invalid Related Debt ID')
+    .optional()
+    .nullable(),
   // debtStatus is managed internally, not part of create/update DTO
 });
 
 // We can use .refine for complex cross-field validation, e.g., requiring accountId for income/expense
 // or from/toAccountId for transfer. This will be enforced in the service logic as well.
-const RefinedTransactionSchema = TransactionBaseSchema.refine(
-  (data) => {
-    if (data.type === 'income' || data.type === 'expense') {
-      return !!data.accountId;
-    }
-    return true;
-  },
-  {
-    message: 'accountId is required for income/expense transactions',
-    path: ['accountId'],
-  },
-)
+const RefinedTransactionSchema = TransactionBaseSchema
+  // Require accountId for income, expense, debt_give, debt_take, debt_repay
+  .refine(
+    (data) => {
+      if (
+        ['income', 'expense', 'debt_give', 'debt_take', 'debt_repay'].includes(
+          data.type,
+        )
+      ) {
+        return !!data.accountId;
+      }
+      return true;
+    },
+    {
+      message: 'accountId is required for this transaction type',
+      path: ['accountId'],
+    },
+  )
+  // Require fromAccountId and toAccountId for transfer, and they must be different
   .refine(
     (data) => {
       if (data.type === 'transfer') {
@@ -55,24 +71,22 @@ const RefinedTransactionSchema = TransactionBaseSchema.refine(
     },
     {
       message:
-        'fromAccountId and toAccountId are required for transfer transactions and must be different',
+        'fromAccountId and toAccountId are required for transfer and must be different',
       path: ['fromAccountId', 'toAccountId'],
     },
   )
+  // Require contactName and contactPhone for debt_give and debt_take
   .refine(
     (data) => {
-      if (
-        data.type === 'debt_give' ||
-        data.type === 'debt_take' ||
-        data.type === 'debt_repay'
-      ) {
-        return !!data.accountId;
+      if (['debt_give', 'debt_take'].includes(data.type)) {
+        return !!data.contactName && !!data.contactPhone;
       }
       return true;
     },
     {
-      message: 'accountId is required for debt transactions',
-      path: ['accountId'],
+      message:
+        'contactName and contactPhone are required for debt transactions',
+      path: ['contactName', 'contactPhone'],
     },
   );
 

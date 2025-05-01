@@ -51,6 +51,7 @@ export class TransactionService {
       toAccountId,
       profileId,
       categoryId,
+      relatedDebtId,
       ...rest
     } = createTransactionDto;
 
@@ -62,6 +63,8 @@ export class TransactionService {
         accountId && this.validateAccountOwnership(userId, accountId),
         fromAccountId && this.validateAccountOwnership(userId, fromAccountId),
         toAccountId && this.validateAccountOwnership(userId, toAccountId),
+        // Validate relatedDebtId ownership if provided
+        relatedDebtId && this.validateDebtOwnership(userId, relatedDebtId),
       ]);
 
       // If category is provided, validate it matches transaction type
@@ -86,6 +89,8 @@ export class TransactionService {
               type === 'debt_give' || type === 'debt_take'
                 ? 'active'
                 : undefined,
+            // Add relatedDebtId if it exists - use explicit spread to avoid type errors
+            ...(relatedDebtId ? { relatedDebtId } : {}),
           },
         });
 
@@ -97,7 +102,16 @@ export class TransactionService {
           accountId,
           fromAccountId,
           toAccountId,
+          relatedDebtId,
         );
+
+        // 3. If it's a debt repayment, update the status of the related debt
+        if (type === 'debt_repay' && relatedDebtId) {
+          await tx.transaction.update({
+            where: { id: relatedDebtId },
+            data: { debtStatus: 'repaid' },
+          });
+        }
 
         return createdTransaction;
       });
@@ -137,6 +151,7 @@ export class TransactionService {
     accountId?: string | null,
     fromAccountId?: string | null,
     toAccountId?: string | null,
+    relatedDebtId?: string | null,
   ): Promise<void> {
     switch (type) {
       case $Enums.TransactionType.income:
@@ -155,11 +170,17 @@ export class TransactionService {
           data: { balance: { decrement: amount } },
         });
         break;
-      case $Enums.TransactionType.debt: // Handle both debt_give and debt_take as 'debt'
+      case $Enums.TransactionType.debt_give:
         if (!accountId)
-          throw new BadRequestException('accountId required for debt');
-        // Decide increment or decrement based on additional context if needed
-        // For now, just increment (customize as needed)
+          throw new BadRequestException('accountId required for debt_give');
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: { decrement: amount } },
+        });
+        break;
+      case $Enums.TransactionType.debt_take:
+        if (!accountId)
+          throw new BadRequestException('accountId required for debt_take');
         await tx.account.update({
           where: { id: accountId },
           data: { balance: { increment: amount } },
@@ -180,12 +201,54 @@ export class TransactionService {
         });
         break;
       case $Enums.TransactionType.debt_repay:
-        if (!accountId)
+        if (!accountId) {
           throw new BadRequestException('accountId required for debt_repay');
-        await tx.account.update({
-          where: { id: accountId },
-          data: { balance: { increment: amount } },
-        });
+        }
+
+        // If there's a related debt, check its type to determine the correct balance update
+        if (relatedDebtId) {
+          const relatedDebt = await tx.transaction.findUnique({
+            where: { id: relatedDebtId },
+          });
+
+          if (!relatedDebt) {
+            throw new BadRequestException('Related debt transaction not found');
+          }
+
+          // Debt repayment balance logic depends on the original debt type
+          if (relatedDebt.type === 'debt_give') {
+            // If repaying a debt that was given, the account balance should increase
+            console.log(
+              `Repaying debt_give: Increasing account ${accountId} balance by ${amount}`,
+            );
+            await tx.account.update({
+              where: { id: accountId },
+              data: { balance: { increment: amount } },
+            });
+          } else if (relatedDebt.type === 'debt_take') {
+            // If repaying a debt that was taken, the account balance should decrease
+            console.log(
+              `Repaying debt_take: Decreasing account ${accountId} balance by ${amount}`,
+            );
+            await tx.account.update({
+              where: { id: accountId },
+              data: { balance: { decrement: amount } },
+            });
+          } else {
+            throw new BadRequestException(
+              'Related transaction is not a valid debt type',
+            );
+          }
+        } else {
+          // If no related debt (should not happen with proper UI), use default logic
+          console.log(
+            `WARNING: Debt repayment without related debt ID, using default behavior`,
+          );
+          await tx.account.update({
+            where: { id: accountId },
+            data: { balance: { decrement: amount } },
+          });
+        }
         break;
     }
   }
@@ -274,6 +337,41 @@ export class TransactionService {
     });
   }
 
+  async findActiveDebts(userId: string): Promise<TransactionResponseDto[]> {
+    try {
+      console.log(`Finding active debts for userId: ${userId}`);
+
+      const transactions = await this.prisma.transaction.findMany({
+        where: {
+          userId,
+          type: {
+            in: ['debt_give', 'debt_take'],
+          },
+          debtStatus: 'active',
+        },
+        orderBy: {
+          date: 'desc',
+        },
+      });
+
+      console.log(`Found ${transactions.length} active debts`);
+
+      if (transactions.length > 0) {
+        console.log(
+          'Sample debt transaction:',
+          JSON.stringify(transactions[0], null, 2),
+        );
+      }
+
+      return transactions.map(this.mapToDto);
+    } catch (error) {
+      console.error('Error finding active debts:', error);
+      throw new InternalServerErrorException(
+        'An error occurred while finding active debts',
+      );
+    }
+  }
+
   // --- Helper validation methods (Placeholder - Implement full checks if needed) ---
   private async validateProfileOwnership(
     userId: string,
@@ -310,40 +408,106 @@ export class TransactionService {
     categoryId: string,
     transactionType: TransactionType,
   ): Promise<void> {
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-    });
+    try {
+      const category = await this.prisma.category.findUnique({
+        where: { id: categoryId },
+        include: { categoryType: true },
+      });
 
-    if (!category) {
-      throw new NotFoundException(`Category with ID "${categoryId}" not found`);
-    }
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
 
-    // Validate category type matches transaction type
-    const isValid = this.isCategoryTypeValid(category.type, transactionType);
-    if (!isValid) {
-      throw new BadRequestException(
-        `Category type "${category.type}" is not valid for transaction type "${transactionType}"`,
-      );
+      // Try to get category type name from the category
+      let categoryTypeName: string | undefined;
+
+      // First try to get from the snapshot
+      if (category.categoryTypeNameSnapshot) {
+        categoryTypeName = category.categoryTypeNameSnapshot;
+      }
+      // Then try to get from the relation
+      else if (
+        category.categoryType &&
+        typeof category.categoryType === 'object'
+      ) {
+        // Safely access name property if it exists
+        const categoryTypeObj = category.categoryType as Record<
+          string,
+          unknown
+        >;
+        if (
+          categoryTypeObj &&
+          'name' in categoryTypeObj &&
+          typeof categoryTypeObj.name === 'string'
+        ) {
+          categoryTypeName = categoryTypeObj.name;
+        }
+      }
+
+      // Validate category type against transaction type
+      if (!this.isCategoryTypeValid(categoryTypeName, transactionType)) {
+        throw new BadRequestException(
+          `Category type does not match transaction type (${transactionType})`,
+        );
+      }
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error validating category type');
     }
   }
 
   private isCategoryTypeValid(
-    categoryType: string,
+    categoryType: string | undefined,
     transactionType: TransactionType,
   ): boolean {
+    if (!categoryType) return false;
+    const categoryTypeStr = String(categoryType).toLowerCase();
+
     switch (transactionType) {
       case 'income':
-        return categoryType === 'income';
+        return categoryTypeStr === 'income';
       case 'expense':
-        return categoryType === 'expense';
+        return categoryTypeStr === 'expense';
       case 'transfer':
         return true; // Transfers don't require categories
       case 'debt_give':
       case 'debt_take':
       case 'debt_repay':
-        return categoryType === 'debt';
+        return categoryTypeStr === 'debt';
       default:
         return false;
+    }
+  }
+
+  private async validateDebtOwnership(
+    userId: string,
+    debtId: string,
+  ): Promise<void> {
+    const debt = await this.prisma.transaction.findUnique({
+      where: { id: debtId },
+    });
+
+    if (!debt) {
+      throw new NotFoundException('Debt transaction not found');
+    }
+
+    if (debt.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have access to this debt transaction',
+      );
+    }
+
+    if (debt.debtStatus !== 'active') {
+      throw new BadRequestException('This debt has already been repaid');
+    }
+
+    if (!['debt_give', 'debt_take'].includes(debt.type)) {
+      throw new BadRequestException('The referenced transaction is not a debt');
     }
   }
   // ---

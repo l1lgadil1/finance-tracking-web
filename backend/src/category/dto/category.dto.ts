@@ -1,20 +1,19 @@
 import { createZodDto } from 'nestjs-zod';
 import * as z from 'zod';
 
-// Define allowed category types
-const CategoryTypeEnum = z.enum(['income', 'expense']);
-
 // Manually defined Zod schema for Category data handled by user
 const CategoryDataSchema = z.object({
   name: z.string().min(1, 'Name cannot be empty'),
   icon: z.string().optional(),
-  type: CategoryTypeEnum,
+  categoryTypeId: z.string().uuid(),
 });
 
 // Schema for the full Category entity response
 const CategoryResponseSchema = CategoryDataSchema.extend({
   id: z.string().uuid(),
   userId: z.string().uuid().nullable(), // userId is optional in schema.prisma
+  categoryTypeNameSnapshot: z.string().optional(),
+  categoryTypeId: z.string().uuid().nullable(), // allow null for response
   // Add other fields like createdAt/updatedAt if they exist in the model
 });
 

@@ -30,6 +30,8 @@ model User {
   profiles      Profile[]
   subscriptions Subscription[]
   transactions  Transaction[]
+  accountTypes  AccountType[]
+  categoryTypes CategoryType[]
 }
 
 model Profile {
@@ -42,33 +44,61 @@ model Profile {
   transactions Transaction[]
 }
 
+model AccountType {
+  id        String    @id @default(uuid())
+  name      String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id])
+  accounts  Account[]
+}
+
+model CategoryType {
+  id         String     @id @default(uuid())
+  name       String
+  userId     String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  deletedAt  DateTime?
+  isSystem   Boolean    @default(false)
+  user       User       @relation(fields: [userId], references: [id])
+  categories Category[]
+}
+
 model Account {
-  id           String        @id @default(uuid())
-  name         String
-  balance      Float         @default(0)
-  userId       String
-  createdAt    DateTime      @default(now())
-  user         User          @relation(fields: [userId], references: [id])
-  transactions Transaction[] @relation("TransactionAccount")
+  id                      String        @id @default(uuid())
+  name                    String
+  balance                 Float         @default(0)
+  userId                  String
+  createdAt               DateTime      @default(now())
+  user                    User          @relation(fields: [userId], references: [id])
+  transactions            Transaction[] @relation("TransactionAccount")
+  accountTypeId           String?
+  accountType             AccountType?  @relation(fields: [accountTypeId], references: [id])
+  accountTypeNameSnapshot String?
 }
 
 model Category {
-  id           String        @id @default(uuid())
-  name         String
-  icon         String?
-  type         String
-  userId       String?
-  user         User?         @relation(fields: [userId], references: [id])
-  transactions Transaction[]
+  id                       String        @id @default(uuid())
+  name                     String
+  icon                     String?
+  userId                   String?
+  user                     User?         @relation(fields: [userId], references: [id])
+  transactions             Transaction[]
+  categoryTypeId           String?
+  categoryType             CategoryType? @relation(fields: [categoryTypeId], references: [id])
+  categoryTypeNameSnapshot String?
 }
 
 model Transaction {
-  id            String         @id @default(uuid())
+  id            String          @id @default(uuid())
   type          TransactionType
   amount        Float
   description   String?
   date          DateTime
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime        @default(now())
   userId        String
   profileId     String
   categoryId    String?
@@ -78,10 +108,11 @@ model Transaction {
   contactName   String?
   contactPhone  String?
   debtStatus    String?
-  account       Account?       @relation("TransactionAccount", fields: [accountId], references: [id])
-  category      Category?      @relation(fields: [categoryId], references: [id])
-  profile       Profile        @relation(fields: [profileId], references: [id])
-  user          User           @relation(fields: [userId], references: [id])
+  relatedDebtId String?
+  account       Account?        @relation("TransactionAccount", fields: [accountId], references: [id])
+  category      Category?       @relation(fields: [categoryId], references: [id])
+  profile       Profile         @relation(fields: [profileId], references: [id])
+  user          User            @relation(fields: [userId], references: [id])
 }
 
 model Goal {

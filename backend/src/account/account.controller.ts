@@ -27,6 +27,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Account as PrismaAccount } from '@prisma/client';
 
 @ApiTags('Accounts')
 @ApiBearerAuth()
@@ -46,11 +47,12 @@ export class AccountController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 400, description: 'Bad Request (validation failed)' })
   @ApiBody({ type: CreateAccountDto })
-  create(
+  async create(
     @CurrentUser() userId: string,
     @Body() createAccountDto: CreateAccountDto,
   ): Promise<AccountResponseDto> {
-    return this.accountService.create(userId, createAccountDto);
+    const account = await this.accountService.create(userId, createAccountDto);
+    return this.mapToAccountResponseDto(account);
   }
 
   @Get()
@@ -61,8 +63,9 @@ export class AccountController {
     type: [AccountResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findAll(@CurrentUser() userId: string): Promise<AccountResponseDto[]> {
-    return this.accountService.findAll(userId);
+  async findAll(@CurrentUser() userId: string): Promise<AccountResponseDto[]> {
+    const accounts = await this.accountService.findAll(userId);
+    return accounts.map(this.mapToAccountResponseDto);
   }
 
   @Get(':id')
@@ -81,11 +84,12 @@ export class AccountController {
     format: 'uuid',
     description: 'Account ID',
   })
-  findOne(
+  async findOne(
     @CurrentUser() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<AccountResponseDto> {
-    return this.accountService.findOne(userId, id);
+    const account = await this.accountService.findOne(userId, id);
+    return this.mapToAccountResponseDto(account);
   }
 
   @Patch(':id')
@@ -106,12 +110,17 @@ export class AccountController {
     description: 'Account ID',
   })
   @ApiBody({ type: UpdateAccountDto })
-  update(
+  async update(
     @CurrentUser() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAccountDto: UpdateAccountDto,
   ): Promise<AccountResponseDto> {
-    return this.accountService.update(userId, id, updateAccountDto);
+    const account = await this.accountService.update(
+      userId,
+      id,
+      updateAccountDto,
+    );
+    return this.mapToAccountResponseDto(account);
   }
 
   @Delete(':id')
@@ -134,4 +143,17 @@ export class AccountController {
   ): Promise<void> {
     await this.accountService.remove(userId, id);
   }
+
+  // Helper method to map Prisma Account to AccountResponseDto
+  private mapToAccountResponseDto = (
+    account: PrismaAccount,
+  ): AccountResponseDto => ({
+    id: account.id,
+    name: account.name,
+    userId: account.userId,
+    createdAt: account.createdAt,
+    balance: account.balance,
+    accountTypeId: account.accountTypeId ?? null,
+    accountTypeNameSnapshot: account.accountTypeNameSnapshot ?? undefined,
+  });
 }

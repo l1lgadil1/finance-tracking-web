@@ -118,6 +118,23 @@ export class TransactionController {
     return this.transactionService.findAll(userId, query) as any;
   }
 
+  @Get('active-debts')
+  @ApiOperation({
+    summary: 'Get active debt transactions for the current user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of active debt transactions.',
+    type: [TransactionResponseDto],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  findActiveDebts(
+    @CurrentUser() userId: string,
+  ): Promise<TransactionResponseDto[]> {
+    console.log('findActiveDebts called for userId', userId);
+    return this.transactionService.findActiveDebts(userId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific transaction by ID' })
   @ApiResponse({

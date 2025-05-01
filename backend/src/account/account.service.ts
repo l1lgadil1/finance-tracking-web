@@ -15,11 +15,18 @@ export class AccountService {
     userId: string,
     createAccountDto: CreateAccountDto,
   ): Promise<Account> {
-    // Balance is included in DTO and defaults to 0 if not provided
+    // Fetch the account type and validate ownership
+    const type = await this.prisma.accountType.findUnique({
+      where: { id: createAccountDto.accountTypeId },
+    });
+    if (!type || type.userId !== userId || type.deletedAt) {
+      throw new NotFoundException('Account type not found');
+    }
     return this.prisma.account.create({
       data: {
         ...createAccountDto,
-        userId: userId, // Associate with the current user
+        userId: userId,
+        accountTypeNameSnapshot: type.name,
       },
     });
   }
@@ -53,13 +60,23 @@ export class AccountService {
     id: string,
     updateAccountDto: UpdateAccountDto,
   ): Promise<Account> {
-    // First, verify the account exists and belongs to the user
     await this.findOne(userId, id);
-
-    // Only update the fields present in UpdateAccountDto (just name)
+    let typeName: string | undefined = undefined;
+    if (updateAccountDto.accountTypeId) {
+      const type = await this.prisma.accountType.findUnique({
+        where: { id: updateAccountDto.accountTypeId },
+      });
+      if (!type || type.userId !== userId || type.deletedAt) {
+        throw new NotFoundException('Account type not found');
+      }
+      typeName = type.name;
+    }
     return this.prisma.account.update({
       where: { id },
-      data: updateAccountDto,
+      data: {
+        ...updateAccountDto,
+        ...(typeName && { accountTypeNameSnapshot: typeName }),
+      },
     });
   }
 

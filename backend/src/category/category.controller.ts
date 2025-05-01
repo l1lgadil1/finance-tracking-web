@@ -27,6 +27,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Category as PrismaCategory } from '@prisma/client';
 
 @ApiTags('Categories')
 @ApiBearerAuth()
@@ -148,13 +149,16 @@ export class CategoryController {
   }
 
   // Helper method to map Prisma Category to CategoryResponseDto
-  private mapToCategoryResponseDto(category: any): CategoryResponseDto {
+  private mapToCategoryResponseDto(
+    category: PrismaCategory,
+  ): CategoryResponseDto {
     return {
       id: category.id,
       name: category.name,
-      type: category.type as 'income' | 'expense',
       userId: category.userId,
-      icon: category.icon,
+      icon: category.icon ?? undefined,
+      categoryTypeId: category.categoryTypeId ?? null,
+      categoryTypeNameSnapshot: category.categoryTypeNameSnapshot ?? undefined,
     };
   }
 }

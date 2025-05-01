@@ -13,6 +13,8 @@ import { GoalModule } from './goal/goal.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AiRequestLogModule } from './ai-request-log/ai-request-log.module';
 import { AiRecommendationsModule } from './ai-recommendations/ai-recommendations.module';
+import { AccountTypeModule } from './account-type/account-type.module';
+import { CategoryTypeModule } from './category-type/category-type.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { AiRecommendationsModule } from './ai-recommendations/ai-recommendations
     SubscriptionModule,
     AiRequestLogModule,
     AiRecommendationsModule,
+    AccountTypeModule,
+    CategoryTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -15,10 +15,32 @@ export class CategoryService {
     userId: string,
     createCategoryDto: CreateCategoryDto,
   ): Promise<Category> {
+    console.log(
+      `Attempting to create category with type ID: ${createCategoryDto.categoryTypeId} for user: ${userId}`,
+    );
+
+    // Fetch the category type without validating ownership
+    const type = await this.prisma.categoryType.findUnique({
+      where: { id: createCategoryDto.categoryTypeId },
+    });
+
+    console.log('Category type found:', type);
+
+    // Only check if the type exists and is not deleted
+    if (!type || type.deletedAt) {
+      console.log('Category type not found or deleted, throwing error');
+      throw new NotFoundException('Category type not found');
+    }
+
+    // Skip the ownership check (type.userId !== userId) since category types are global
+    console.log(
+      `Creating category with name: ${createCategoryDto.name}, type: ${type.name}`,
+    );
     return this.prisma.category.create({
       data: {
         ...createCategoryDto,
-        userId: userId, // Associate with the current user
+        userId: userId,
+        categoryTypeNameSnapshot: type.name,
       },
     });
   }
@@ -60,12 +82,29 @@ export class CategoryService {
     id: string,
     updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
-    // Verify the category exists and belongs to the user
     await this.findOne(userId, id);
+    let typeName: string | undefined = undefined;
+
+    if (updateCategoryDto.categoryTypeId) {
+      const type = await this.prisma.categoryType.findUnique({
+        where: { id: updateCategoryDto.categoryTypeId },
+      });
+
+      // Only check if the type exists and is not deleted
+      if (!type || type.deletedAt) {
+        throw new NotFoundException('Category type not found');
+      }
+
+      // Skip the ownership check (type.userId !== userId) since category types are global
+      typeName = type.name;
+    }
 
     return this.prisma.category.update({
       where: { id },
-      data: updateCategoryDto,
+      data: {
+        ...updateCategoryDto,
+        ...(typeName && { categoryTypeNameSnapshot: typeName }),
+      },
     });
   }
 

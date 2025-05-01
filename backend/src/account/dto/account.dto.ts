@@ -7,6 +7,7 @@ const AccountDataSchema = z.object({
   // Balance is managed by transactions, but allow setting initial on create?
   // Let's allow setting initial balance on create, default to 0 otherwise.
   balance: z.number().optional().default(0),
+  accountTypeId: z.string().uuid(),
 });
 
 // Schema for the full Account entity response
@@ -15,17 +16,15 @@ const AccountResponseSchema = AccountDataSchema.extend({
   userId: z.string().uuid(),
   createdAt: z.date(),
   balance: z.number(), // Ensure balance is always a number in response
+  accountTypeNameSnapshot: z.string().optional(),
+  accountTypeId: z.string().uuid().nullable(), // allow null for response
 });
 
 // Schema for creating an account
 const CreateAccountSchema = AccountDataSchema;
 
 // Schema for updating an account (only name is typically updatable directly)
-const UpdateAccountSchema = z
-  .object({
-    name: z.string().min(1, 'Name cannot be empty'),
-  })
-  .partial(); // Make name optional for PATCH
+const UpdateAccountSchema = AccountDataSchema.partial(); // Make name optional for PATCH
 
 // --- DTOs --- //
 
