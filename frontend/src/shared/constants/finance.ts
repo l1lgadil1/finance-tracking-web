@@ -3,6 +3,8 @@ export enum TransactionType {
   EXPENSE = 'expense',
   TRANSFER = 'transfer',
   DEBT = 'debt',
+  DEBT_GIVE = 'debt_give',
+  DEBT_TAKE = 'debt_take',
   DEBT_REPAY = 'debt_repay',
 }
 

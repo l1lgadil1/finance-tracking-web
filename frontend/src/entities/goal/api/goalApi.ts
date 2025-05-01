@@ -20,7 +20,7 @@ export const goalApi = {
     api.post<Goal>('/goals', data),
     
   update: (id: string, data: Partial<Omit<Goal, 'id' | 'userId'>>) => 
-    api.put<Goal>(`/goals/${id}`, data),
+    api.patch<Goal>(`/goals/${id}`, data),
     
   delete: (id: string) => 
     api.delete<{ success: boolean }>(`/goals/${id}`),

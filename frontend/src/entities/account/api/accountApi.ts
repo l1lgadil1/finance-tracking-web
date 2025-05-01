@@ -21,7 +21,7 @@ export const accountApi = {
     api.post<Account>('/accounts', data),
     
   update: (id: string, data: Partial<Omit<Account, 'id' | 'userId'>>) => 
-    api.put<Account>(`/accounts/${id}`, data),
+    api.patch<Account>(`/accounts/${id}`, data),
     
   delete: (id: string) => 
     api.delete<{ success: boolean }>(`/accounts/${id}`),

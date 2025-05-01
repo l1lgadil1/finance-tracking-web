@@ -1,7 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 interface RequestOptions {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: unknown;
   headers?: Record<string, string>;
   credentials?: RequestCredentials;
@@ -89,6 +89,9 @@ export const api = {
     
   put: <T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) => 
     request<T>(endpoint, { ...options, method: 'PUT', body }),
+    
+  patch: <T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) => 
+    request<T>(endpoint, { ...options, method: 'PATCH', body }),
     
   delete: <T>(endpoint: string, options?: Omit<RequestOptions, 'method'>) => 
     request<T>(endpoint, { ...options, method: 'DELETE' }),

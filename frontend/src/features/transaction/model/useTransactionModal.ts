@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { accountApi } from '@/entities/account/api/accountApi';
 import { categoryApi } from '@/entities/category/api/categoryApi';
 import { transactionApi } from '@/entities/transaction/api/transactionApi';
 import { userApi } from '@/entities/user/api/userApi';
+import { accountTypeApi } from '@/entities/account/api/accountTypeApi';
+import { categoryTypeApi, CategoryType } from '@/entities/category/api/categoryTypeApi';
 
 export function useTransactionModal() {
   const queryClient = useQueryClient();
@@ -44,6 +46,54 @@ export function useTransactionModal() {
   // Get the first profileId (or undefined)
   const profileId = profiles && profiles.length > 0 ? profiles[0].id : undefined;
 
+  // Fetch account types
+  const {
+    data: accountTypes,
+    isLoading: isAccountTypesLoading,
+    isError: isAccountTypesError,
+    refetch: refetchAccountTypes,
+  } = useQuery({
+    queryKey: ['accountTypes'],
+    queryFn: accountTypeApi.getAll,
+  });
+
+  // Fetch category types - simplified to work with global types
+  const [categoryTypes, setCategoryTypes] = useState<CategoryType[]>([]);
+  const [isCategoryTypesLoading, setIsCategoryTypesLoading] = useState(false);
+  const [isCategoryTypesError, setIsCategoryTypesError] = useState(false);
+
+  const fetchCategoryTypes = useCallback(async () => {
+    setIsCategoryTypesLoading(true);
+    setIsCategoryTypesError(false);
+    try {
+      console.log('Fetching global category types...');
+      const response = await categoryTypeApi.getAll();
+      console.log('Category types response:', response);
+      
+      if (Array.isArray(response) && response.length > 0) {
+        setCategoryTypes(response);
+      } else {
+        console.warn('Received empty or invalid category types array:', response);
+        setCategoryTypes([]);
+        setIsCategoryTypesError(true);
+      }
+    } catch (error) {
+      console.error('Error fetching category types:', error);
+      setCategoryTypes([]);
+      setIsCategoryTypesError(true);
+    } finally {
+      setIsCategoryTypesLoading(false);
+    }
+  }, []);
+
+  const refetchCategoryTypes = useCallback(() => {
+    fetchCategoryTypes();
+  }, [fetchCategoryTypes]);
+
+  useEffect(() => {
+    fetchCategoryTypes();
+  }, [fetchCategoryTypes]);
+
   // Transaction submit mutation
   const mutation = useMutation({
     mutationFn: transactionApi.create,
@@ -55,6 +105,30 @@ export function useTransactionModal() {
   // State for quick add/edit modals (to be implemented)
   const [isAccountModalOpen, setAccountModalOpen] = useState(false);
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
+
+  // Fetch active debts
+  const {
+    data: activeDebts,
+    isLoading: isActiveDebtsLoading,
+    isError: isActiveDebtsError,
+    error: activeDebtsError,
+    refetch: refetchActiveDebts,
+  } = useQuery({
+    queryKey: ['active-debts'],
+    queryFn: async () => {
+      try {
+        console.log('Fetching active debts...');
+        const response = await transactionApi.getActiveDebts();
+        console.log('Active debts response:', response);
+        return response;
+      } catch (error) {
+        console.error('Error fetching active debts:', error);
+        throw error;
+      }
+    },
+    retry: 1,
+    enabled: false,
+  });
 
   return {
     accounts,
@@ -80,5 +154,18 @@ export function useTransactionModal() {
     isProfilesError,
     refetchProfiles,
     profileId,
+    accountTypes,
+    isAccountTypesLoading,
+    isAccountTypesError,
+    refetchAccountTypes,
+    categoryTypes,
+    isCategoryTypesLoading,
+    isCategoryTypesError,
+    refetchCategoryTypes,
+    activeDebts,
+    isActiveDebtsLoading,
+    isActiveDebtsError,
+    activeDebtsError,
+    refetchActiveDebts,
   };
 } 

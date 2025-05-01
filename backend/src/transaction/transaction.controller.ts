@@ -56,7 +56,7 @@ export class TransactionController {
     @CurrentUser() userId: string,
     @Body() createTransactionDto: CreateTransactionDto,
   ): Promise<TransactionResponseDto> {
-    return this.transactionService.create(userId, createTransactionDto) as any;
+    return this.transactionService.create(userId, createTransactionDto);
   }
 
   @Get()
@@ -115,7 +115,7 @@ export class TransactionController {
     @CurrentUser() userId: string,
     @Query() query: FindTransactionsQueryDto,
   ): Promise<TransactionResponseDto[]> {
-    return this.transactionService.findAll(userId, query) as any;
+    return this.transactionService.findAll(userId, query);
   }
 
   @Get('active-debts')
@@ -155,7 +155,7 @@ export class TransactionController {
     @CurrentUser() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<TransactionResponseDto> {
-    return this.transactionService.findOne(userId, id) as any;
+    return this.transactionService.findOne(userId, id);
   }
 
   @Patch(':id')
@@ -181,11 +181,7 @@ export class TransactionController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTransactionDto: UpdateTransactionDto,
   ): Promise<TransactionResponseDto> {
-    return this.transactionService.update(
-      userId,
-      id,
-      updateTransactionDto,
-    ) as any;
+    return this.transactionService.update(userId, id, updateTransactionDto);
   }
 
   @Delete(':id')

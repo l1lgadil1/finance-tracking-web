@@ -12,6 +12,10 @@ export interface Transaction {
   categoryId: string;
   profileId: string;
   category?: Category;
+  contactName?: string;
+  contactPhone?: string;
+  debtStatus?: string;
+  relatedDebtId?: string;
 }
 
 export interface TransactionFilters {
@@ -31,11 +35,23 @@ export const transactionApi = {
   getById: (id: string) => 
     api.get<Transaction>(`/transactions/${id}`),
     
+  getActiveDebts: async () => {
+    try {
+      console.log('Calling API: GET /transactions/active-debts');
+      const response = await api.get<Transaction[]>('/transactions/active-debts');
+      console.log('Active debts API response:', response);
+      return response;
+    } catch (error) {
+      console.error('Active debts API error:', error);
+      throw error;
+    }
+  },
+    
   create: (data: Omit<Transaction, 'id' | 'category'>) => 
     api.post<Transaction>('/transactions', data),
     
   update: (id: string, data: Partial<Omit<Transaction, 'id' | 'category'>>) => 
-    api.put<Transaction>(`/transactions/${id}`, data),
+    api.patch<Transaction>(`/transactions/${id}`, data),
     
   delete: (id: string) => 
     api.delete<{ success: boolean }>(`/transactions/${id}`),

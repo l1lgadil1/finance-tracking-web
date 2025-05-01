@@ -16,6 +16,7 @@
 - Added loading/error states to charts
 - Implemented dark/light mode in charts
 - Integrated real transaction data in analytics (15-day aggregation)
+- Fixed backend enum/type errors in transaction service; now using Prisma enum for all transaction type logic. debt_give/debt_take mapped to 'debt' due to schema constraints.
 
 ## Next Steps
 
@@ -39,4 +40,5 @@
 - Incomplete error handling and loading states in some components
 - Incomplete test coverage
 - AI insights placeholder needs real implementation
-- Ongoing: UI/logic separation, type safety, error handling 
+- Ongoing: UI/logic separation, type safety, error handling
+- debt_give/debt_take are not distinguished in backend logic due to current Prisma schema; both are mapped to 'debt'. 

@@ -7,6 +7,8 @@ export interface Category {
   icon?: string;
   color?: string;
   profileId: string;
+  categoryTypeId: string;
+  categoryTypeNameSnapshot?: string;
 }
 
 export const categoryApi = {
@@ -20,7 +22,7 @@ export const categoryApi = {
     api.post<Category>('/categories', data),
     
   update: (id: string, data: Partial<Omit<Category, 'id'>>) => 
-    api.put<Category>(`/categories/${id}`, data),
+    api.patch<Category>(`/categories/${id}`, data),
     
   delete: (id: string) => 
     api.delete<{ success: boolean }>(`/categories/${id}`),

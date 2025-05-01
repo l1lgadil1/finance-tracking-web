@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Button } from '@/shared/ui/Button';
@@ -29,6 +29,7 @@ interface TransactionFormData {
   profileId: string;
   contactName?: string;
   contactPhone?: string;
+  relatedDebtId?: string;
 }
 
 // Define translations
@@ -40,12 +41,23 @@ const translations = {
     descriptionPlaceholder: 'Enter transaction description',
     account: 'Account',
     selectAccount: 'Select an account',
+    fromAccount: 'From Account',
+    toAccount: 'To Account',
     category: 'Category',
     selectCategory: 'Select a category',
     date: 'Date',
     save: 'Save',
     cancel: 'Cancel',
     close: 'Close',
+    contactName: 'Contact Name',
+    contactNamePlaceholder: 'Enter contact name',
+    contactPhone: 'Contact Phone',
+    contactPhonePlaceholder: 'Enter contact phone',
+    debtToRepay: 'Debt to Repay',
+    selectDebt: 'Select debt to repay',
+    noActiveDebts: 'No active debts found. Create a debt transaction first.',
+    givenTo: 'Given to:',
+    takenFrom: 'Taken from:',
     types: {
       income: 'Income',
       expense: 'Expense',
@@ -62,12 +74,23 @@ const translations = {
     descriptionPlaceholder: 'Введите описание транзакции',
     account: 'Счет',
     selectAccount: 'Выберите счет',
+    fromAccount: 'Счет списания',
+    toAccount: 'Счет зачисления',
     category: 'Категория',
     selectCategory: 'Выберите категорию',
     date: 'Дата',
     save: 'Сохранить',
     cancel: 'Отмена',
     close: 'Закрыть',
+    contactName: 'Имя контакта',
+    contactNamePlaceholder: 'Введите имя контакта',
+    contactPhone: 'Телефон контакта',
+    contactPhonePlaceholder: 'Введите телефон контакта',
+    debtToRepay: 'Долг для погашения',
+    selectDebt: 'Выберите долг для погашения',
+    noActiveDebts: 'Нет активных долгов. Сначала создайте долговую транзакцию.',
+    givenTo: 'Дано:',
+    takenFrom: 'Взято у:',
     types: {
       income: 'Доход',
       expense: 'Расход',
@@ -112,9 +135,100 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     resetSubmit,
     profileId,
     isProfilesLoading,
+    categoryTypes,
+    activeDebts,
+    isActiveDebtsLoading,
+    isActiveDebtsError,
+    activeDebtsError,
+    refetchActiveDebts,
   } = useTransactionModal();
 
-  React.useEffect(() => {
+  // Helper function to get category type name based on transaction type
+  const getCategoryTypeForTransaction = (transactionType: TransactionType) => {
+    switch (transactionType) {
+      case TransactionType.INCOME:
+        return 'Income';
+      case TransactionType.EXPENSE:
+        return 'Expense';
+      case TransactionType.TRANSFER:
+        return 'Transfer';
+      case TransactionType.DEBT_GIVE:
+        return 'Gave Debt';
+      case TransactionType.DEBT_TAKE:
+        return 'Took Debt';
+      case TransactionType.DEBT_REPAY:
+        return 'Repay Debt';
+      default:
+        return 'Expense'; // Default to expense
+    }
+  };
+
+  // Filter categories based on transaction type
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    
+    // Get the category type name that corresponds to the selected transaction type
+    const targetCategoryTypeName = getCategoryTypeForTransaction(transactionType);
+    
+    // Filter categories by their categoryTypeNameSnapshot
+    return (categories as Category[]).filter(category => {
+      return category.categoryTypeNameSnapshot === targetCategoryTypeName;
+    });
+  }, [categories, transactionType]);
+
+  // Log the filtered categories for debugging
+  useEffect(() => {
+    if (filteredCategories) {
+      console.log('Filtered categories for transaction type:', transactionType, filteredCategories);
+    }
+  }, [filteredCategories, transactionType]);
+
+  // Fetch active debts when the DEBT_REPAY type is selected with improved debugging
+  useEffect(() => {
+    if (transactionType === TransactionType.DEBT_REPAY) {
+      console.log('DEBT_REPAY selected, fetching active debts...');
+      refetchActiveDebts()
+        .then(result => {
+          console.log('Active debts fetch result:', result);
+        })
+        .catch(error => {
+          console.error('Active debts fetch error:', error);
+        });
+    }
+  }, [transactionType, refetchActiveDebts]);
+
+  // Log active debts state changes for debugging
+  useEffect(() => {
+    console.log('Active debts state:', { 
+      activeDebts, 
+      isLoading: isActiveDebtsLoading, 
+      isError: isActiveDebtsError,
+      error: activeDebtsError
+    });
+  }, [activeDebts, isActiveDebtsLoading, isActiveDebtsError, activeDebtsError]);
+
+  // When a debt is selected, prefill the amount from the original debt
+  useEffect(() => {
+    if (
+      transactionType === TransactionType.DEBT_REPAY && 
+      formData.relatedDebtId && 
+      activeDebts?.length
+    ) {
+      const selectedDebt = activeDebts.find(debt => debt.id === formData.relatedDebtId);
+      if (selectedDebt) {
+        // Prefill amount with the debt amount
+        setFormData(prev => ({
+          ...prev,
+          amount: selectedDebt.amount,
+          contactName: selectedDebt.contactName,
+          contactPhone: selectedDebt.contactPhone,
+          description: `Repayment of debt ${selectedDebt.type === 'debt_give' ? 'given to' : 'taken from'} ${selectedDebt.contactName}`,
+        }));
+      }
+    }
+  }, [transactionType, formData.relatedDebtId, activeDebts]);
+
+  useEffect(() => {
     if (isSubmitSuccess) {
       onClose();
       resetSubmit();
@@ -165,24 +279,79 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.amount && formData.type && formData.accountId && formData.categoryId) {
-      const {
-        amount,
-        date,
-        description,
-        accountId,
-        categoryId,
-      } = formData;
-      submitTransaction({
-        amount,
-        date: (date instanceof Date ? date.toISOString() : date) || new Date().toISOString(),
-        description: description ?? '',
-        accountId: accountId ?? '',
-        categoryId: categoryId ?? '',
-        profileId,
-        type: transactionType,
-      });
+    
+    // Validate common required fields
+    if (!formData.amount || !formData.type) {
+      return;
     }
+    
+    // Create transaction data object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: Record<string, any> = {
+      amount: formData.amount,
+      date: (formData.date instanceof Date ? formData.date.toISOString() : formData.date) || new Date().toISOString(),
+      description: formData.description ?? '',
+      profileId,
+      type: transactionType,
+    };
+    
+    // Handle different transaction types
+    if (transactionType === TransactionType.TRANSFER) {
+      // Transfer requires fromAccountId and toAccountId
+      if (!formData.fromAccountId || !formData.toAccountId) {
+        return;
+      }
+      data.fromAccountId = formData.fromAccountId;
+      data.toAccountId = formData.toAccountId;
+      // For transfers, set accountId to null since we use fromAccountId
+      data.accountId = null;
+      data.categoryId = null;
+    } else {
+      // All non-transfer transactions require accountId
+      if (!formData.accountId) {
+        return;
+      }
+      data.accountId = formData.accountId;
+      
+      // Add category for income and expense only
+      if ([TransactionType.INCOME, TransactionType.EXPENSE].includes(transactionType)) {
+        if (!formData.categoryId) {
+          return; // Need category for income/expense
+        }
+        data.categoryId = formData.categoryId;
+      } else {
+        // Set categoryId to null for debt transactions
+        data.categoryId = null;
+      }
+      
+      // Debt transactions need contact info
+      if ([TransactionType.DEBT_GIVE, TransactionType.DEBT_TAKE].includes(transactionType)) {
+        if (!formData.contactName || !formData.contactPhone) {
+          return;
+        }
+        data.contactName = formData.contactName;
+        data.contactPhone = formData.contactPhone;
+      }
+      
+      // For debt repayment, a related debt transaction must be selected
+      if (transactionType === TransactionType.DEBT_REPAY) {
+        if (!formData.relatedDebtId) {
+          return;
+        }
+        data.relatedDebtId = formData.relatedDebtId;
+        
+        // Find the original debt to get contact information
+        const relatedDebt = activeDebts?.find(debt => debt.id === formData.relatedDebtId);
+        if (relatedDebt) {
+          data.contactName = relatedDebt.contactName;
+          data.contactPhone = relatedDebt.contactPhone;
+        }
+      }
+    }
+    
+    // Submit transaction with the properly formed data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    submitTransaction(data as any);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -197,8 +366,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     { value: TransactionType.INCOME, label: t.types.income, key: 'income' },
     { value: TransactionType.EXPENSE, label: t.types.expense, key: 'expense' },
     { value: TransactionType.TRANSFER, label: t.types.transfer, key: 'transfer' },
-    { value: TransactionType.DEBT, label: t.types.debtGive, key: 'debt_give' },
-    { value: TransactionType.DEBT, label: t.types.debtTake, key: 'debt_take' },
+    { value: TransactionType.DEBT_GIVE, label: t.types.debtGive, key: 'debt_give' },
+    { value: TransactionType.DEBT_TAKE, label: t.types.debtTake, key: 'debt_take' },
     { value: TransactionType.DEBT_REPAY, label: t.types.debtRepay, key: 'debt_repay' },
   ];
 
@@ -230,183 +399,368 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             className="fixed inset-0 bg-black"
             onClick={onClose}
           />
-          {/* Modal */}
-          <motion.div
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed inset-x-4 top-[10%] md:inset-auto md:top-[15%] md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {t.newTransaction}
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                leftIcon={<IoMdClose className="w-5 h-5" />}
-                aria-label={t.close}
-              >
-                <span className="sr-only">{t.close}</span>
-              </Button>
-            </div>
-            {/* Form */}
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              {/* Transaction Type */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {transactionTypes.map((type) => (
-                  <Button
-                    key={type.key}
-                    variant={transactionType === type.value ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => {
-                      setTransactionType(type.value as TransactionType);
-                      setFormData(prev => ({ ...prev, type: type.value as TransactionType }));
-                    }}
-                    className="w-full"
-                  >
-                    {type.label}
-                  </Button>
-                ))}
-              </div>
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t.amount}
-                </label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount || ''}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  required
-                />
-              </div>
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t.description}
-                </label>
-                <input
-                  type="text"
-                  name="description"
-                  value={formData.description || ''}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
-                  placeholder={t.descriptionPlaceholder}
-                />
-              </div>
-              {/* Account Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                  {t.account}
-                  <button type="button" onClick={() => setAccountModalOpen(true)} className="ml-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Add Account">
-                    <FiPlus className="w-4 h-4" />
-                  </button>
-                  {formData.accountId && accounts && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const acc = (accounts as Account[]).find(a => a.id === formData.accountId);
-                        if (acc) { setEditAccount(acc); setAccountModalOpen(true); }
-                      }}
-                      className="ml-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                      aria-label="Edit Account"
-                    >
-                      <FiEdit2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </label>
-                <select
-                  name="accountId"
-                  value={formData.accountId || ''}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
-                  required
-                  disabled={isAccountsLoading || isAccountsError}
+          {/* Centered Modal Wrapper */}
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 mx-4"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {t.newTransaction}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  leftIcon={<IoMdClose className="w-5 h-5" />}
+                  aria-label={t.close}
                 >
-                  <option value="">{isAccountsLoading ? 'Loading...' : isAccountsError ? 'Error loading accounts' : t.selectAccount}</option>
-                  {accounts && (accounts as Account[]).map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.balance} {acc.currency})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Category Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                  {t.category}
-                  <button type="button" onClick={() => setCategoryModalOpen(true)} className="ml-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Add Category">
-                    <FiPlus className="w-4 h-4" />
-                  </button>
-                  {formData.categoryId && categories && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const cat = (categories as Category[]).find(c => c.id === formData.categoryId);
-                        if (cat) { setEditCategory(cat); setCategoryModalOpen(true); }
-                      }}
-                      className="ml-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                      aria-label="Edit Category"
-                    >
-                      <FiEdit2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </label>
-                <select
-                  name="categoryId"
-                  value={formData.categoryId || ''}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
-                  required
-                  disabled={isCategoriesLoading || isCategoriesError}
-                >
-                  <option value="">{isCategoriesLoading ? 'Loading...' : isCategoriesError ? 'Error loading categories' : t.selectCategory}</option>
-                  {categories && (categories as Category[]).map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t.date}
-                </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
-                  required
-                />
-              </div>
-              {/* Actions */}
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="secondary" onClick={onClose} type="button">
-                  {t.cancel}
-                </Button>
-                <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
-                  {t.save}
+                  <span className="sr-only">{t.close}</span>
                 </Button>
               </div>
-              {isSubmitError && (
-                <div className="text-red-500 text-sm pt-2">
-                  {submitError && typeof submitError === 'object' && 'message' in submitError ? (submitError as Error).message : 'Error submitting transaction'}
+              {/* Form */}
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                {/* Transaction Type */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {transactionTypes.map((type) => (
+                    <Button
+                      key={type.key}
+                      variant={transactionType === type.value ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => {
+                        setTransactionType(type.value as TransactionType);
+                        setFormData(prev => ({ ...prev, type: type.value as TransactionType }));
+                      }}
+                      className="w-full"
+                    >
+                      {type.label}
+                    </Button>
+                  ))}
                 </div>
-              )}
-            </form>
-          </motion.div>
+                
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t.amount}
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </div>
+                
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t.description}
+                  </label>
+                  <input
+                    type="text"
+                    name="description"
+                    value={formData.description || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                    placeholder={t.descriptionPlaceholder}
+                  />
+                </div>
+                
+                {/* Account Selection - shown for INCOME, EXPENSE, DEBT_GIVE, DEBT_TAKE, DEBT_REPAY */}
+                {[TransactionType.INCOME, TransactionType.EXPENSE, TransactionType.DEBT_GIVE, 
+                  TransactionType.DEBT_TAKE, TransactionType.DEBT_REPAY].includes(transactionType) && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {t.account}
+                      </label>
+                      <button type="button" onClick={() => setAccountModalOpen(true)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Add Account">
+                        <FiPlus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        name="accountId"
+                        value={formData.accountId || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                        required
+                        disabled={isAccountsLoading || isAccountsError}
+                      >
+                        <option value="">{isAccountsLoading ? 'Loading...' : isAccountsError ? 'Error loading accounts' : t.selectAccount}</option>
+                        {accounts && (accounts as Account[]).map((acc) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.name} ({acc.balance} {acc.currency})
+                          </option>
+                        ))}
+                      </select>
+                      {formData.accountId && accounts && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const acc = (accounts as Account[]).find(a => a.id === formData.accountId);
+                            if (acc) { setEditAccount(acc); setAccountModalOpen(true); }
+                          }}
+                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          aria-label="Edit Account"
+                        >
+                          <FiEdit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* From/To Account Selection - only shown for TRANSFER */}
+                {transactionType === TransactionType.TRANSFER && (
+                  <>
+                    {/* From Account */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {t.fromAccount || 'From Account'}
+                        </label>
+                        <button type="button" onClick={() => setAccountModalOpen(true)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Add Account">
+                          <FiPlus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <select
+                        name="fromAccountId"
+                        value={formData.fromAccountId || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                        required
+                        disabled={isAccountsLoading || isAccountsError}
+                      >
+                        <option value="">{isAccountsLoading ? 'Loading...' : isAccountsError ? 'Error loading accounts' : t.selectAccount}</option>
+                        {accounts && (accounts as Account[]).map((acc) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.name} ({acc.balance} {acc.currency})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* To Account */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {t.toAccount || 'To Account'}
+                        </label>
+                      </div>
+                      <select
+                        name="toAccountId"
+                        value={formData.toAccountId || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                        required
+                        disabled={isAccountsLoading || isAccountsError}
+                      >
+                        <option value="">{isAccountsLoading ? 'Loading...' : isAccountsError ? 'Error loading accounts' : t.selectAccount}</option>
+                        {accounts && (accounts as Account[]).map((acc) => (
+                          <option key={acc.id} value={acc.id} disabled={acc.id === formData.fromAccountId}>
+                            {acc.name} ({acc.balance} {acc.currency})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+                
+                {/* Contact Info - only shown for DEBT_GIVE and DEBT_TAKE */}
+                {[TransactionType.DEBT_GIVE, TransactionType.DEBT_TAKE].includes(transactionType) && (
+                  <>
+                    {/* Contact Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {t.contactName || 'Contact Name'}
+                      </label>
+                      <input
+                        type="text"
+                        name="contactName"
+                        value={formData.contactName || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                        placeholder={t.contactNamePlaceholder || 'Enter contact name'}
+                        required
+                      />
+                    </div>
+                    
+                    {/* Contact Phone */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {t.contactPhone || 'Contact Phone'}
+                      </label>
+                      <input
+                        type="text"
+                        name="contactPhone"
+                        value={formData.contactPhone || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                        placeholder={t.contactPhonePlaceholder || 'Enter contact phone'}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                
+                {/* Category Selection - only shown for INCOME and EXPENSE */}
+                {[TransactionType.INCOME, TransactionType.EXPENSE].includes(transactionType) && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {t.category}
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          // Pre-select category type based on current transaction type
+                          const categoryTypeName = getCategoryTypeForTransaction(transactionType);
+                          // Find matching category type ID from available category types
+                          const categoryTypeObj = categoryTypes?.find((ct: { name: string; id: string }) => ct.name === categoryTypeName);
+                          setCategoryModalOpen(true);
+                          // Reset any previous edit category with appropriate type preselected
+                          setEditCategory({
+                            id: '',
+                            name: '',
+                            profileId,
+                            categoryTypeId: categoryTypeObj?.id || '',
+                            categoryTypeNameSnapshot: categoryTypeName,
+                          } as Category);
+                        }} 
+                        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                        aria-label="Add Category"
+                      >
+                        <FiPlus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        name="categoryId"
+                        value={formData.categoryId || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                        required
+                        disabled={isCategoriesLoading || isCategoriesError}
+                      >
+                        <option value="">{isCategoriesLoading ? 'Loading...' : isCategoriesError ? 'Error loading categories' : t.selectCategory}</option>
+                        {filteredCategories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      {formData.categoryId && categories && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cat = (categories as Category[]).find(c => c.id === formData.categoryId);
+                            if (cat) { setEditCategory(cat); setCategoryModalOpen(true); }
+                          }}
+                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          aria-label="Edit Category"
+                        >
+                          <FiEdit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Active Debts Selection - only shown for DEBT_REPAY */}
+                {transactionType === TransactionType.DEBT_REPAY && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {t.debtToRepay}
+                      </label>
+                    </div>
+                    <select
+                      name="relatedDebtId"
+                      value={formData.relatedDebtId || ''}
+                      onChange={handleInputChange}
+                      className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                      required
+                      disabled={isActiveDebtsLoading || isActiveDebtsError}
+                    >
+                      <option value="">{isActiveDebtsLoading ? 'Loading...' : isActiveDebtsError ? 'Error loading debts' : t.selectDebt}</option>
+                      {activeDebts && activeDebts.map((debt) => (
+                        <option key={debt.id} value={debt.id}>
+                          {debt.type === 'debt_give' ? t.givenTo : t.takenFrom}
+                          {debt.contactName} - {debt.amount} ({new Date(debt.date).toLocaleDateString()})
+                        </option>
+                      ))}
+                    </select>
+                    {isActiveDebtsError && (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                        Error loading debts: {activeDebtsError ? String(activeDebtsError).substring(0, 100) : 'Unknown error'}
+                      </p>
+                    )}
+                    {activeDebts && activeDebts.length === 0 && !isActiveDebtsError && (
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
+                        {t.noActiveDebts}
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t.date}
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-white"
+                    required
+                  />
+                </div>
+                {/* Actions */}
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button variant="secondary" onClick={onClose} type="button">
+                    {t.cancel}
+                  </Button>
+                  <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
+                    {t.save}
+                  </Button>
+                </div>
+                {isSubmitError && (
+                  <div className="text-red-500 text-sm pt-2">
+                    {submitError && typeof submitError === 'object' && 'message' in submitError ? (submitError as Error).message : 'Error submitting transaction'}
+                  </div>
+                )}
+              </form>
+              {/* Quick Add/Edit Modals INSIDE modal wrapper for proper stacking */}
+              <AccountQuickModal
+                isOpen={isAccountModalOpen}
+                onClose={() => { setAccountModalOpen(false); setEditAccount(null); }}
+                initialData={editAccount || undefined}
+                locale={locale}
+                onSuccess={refetchAccounts}
+              />
+              <CategoryQuickModal
+                isOpen={isCategoryModalOpen}
+                onClose={() => { setCategoryModalOpen(false); setEditCategory(null); }}
+                initialData={editCategory || undefined}
+                locale={locale}
+                profileId={profileId}
+                onSuccess={refetchCategories}
+              />
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

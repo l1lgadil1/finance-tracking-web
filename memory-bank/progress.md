@@ -5,6 +5,7 @@
 ### Backend
 - MVP implementation complete: Auth, CRUD, data scoping, Swagger, transaction logic.
 - All core modules functional and documented.
+- Backend enum/type errors in transaction service resolved; Prisma enum now used for all transaction type logic. debt_give/debt_take mapped to 'debt' due to schema constraints.
 
 ### Frontend
 - Feature Sliced Design (FSD) structure in place.
@@ -45,6 +46,7 @@
 - Linter/TS config issues with Prisma/NestJS types.
 - Type casts in controllers (replace with DTO mapping).
 - Deletion logic for related entities (profiles/accounts/categories).
+- debt_give/debt_take are not distinguished in backend logic due to current Prisma schema; both are mapped to 'debt'.
 
 ### Frontend
 - TypeScript/Framer Motion errors.
