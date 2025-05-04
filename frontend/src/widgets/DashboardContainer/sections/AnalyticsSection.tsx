@@ -120,11 +120,11 @@ export const AnalyticsSection: FC<AnalyticsSectionProps> = ({ locale }) => {
       </CardHeader>
       <CardBody>
         {/* AI Insight Box */}
-        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg flex items-center">
+        <div className="mb-4 bg-background p-3 rounded-lg flex items-center">
           <div className="mr-3 w-8 h-8 bg-primary-100 dark:bg-primary-800 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold">
             AI
           </div>
-          <p className="text-sm">{t.spentLess}</p>
+          <p className="text-sm text-foreground">{t.spentLess}</p>
         </div>
       
         {/* Real chart with actual data */}
@@ -171,11 +171,11 @@ export const AnalyticsSection: FC<AnalyticsSectionProps> = ({ locale }) => {
         <div className="mt-4 flex justify-center gap-6">
           <div className="flex items-center">
             <div className="w-3 h-3" style={{ backgroundColor: CHART_COLORS.INCOME }}></div>
-            <span className="text-sm ml-2">{t.income}</span>
+            <span className="text-sm ml-2 text-foreground">{t.income}</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3" style={{ backgroundColor: CHART_COLORS.EXPENSE }}></div>
-            <span className="text-sm ml-2">{t.expenses}</span>
+            <span className="text-sm ml-2 text-foreground">{t.expenses}</span>
           </div>
         </div>
       </CardBody>

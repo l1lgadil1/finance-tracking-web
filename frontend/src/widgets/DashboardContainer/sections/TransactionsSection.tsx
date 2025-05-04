@@ -1,12 +1,12 @@
 import { FC, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
-import { Card, CardHeader } from '@/shared/ui/Card';
+import { Card, CardHeader, CardBody } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
 import { useDashboardData } from '../providers/DashboardDataProvider';
 import { Account } from '@/entities/account/api/accountApi';
-import { Transaction } from '@/entities/transaction/api/transactionApi';
+import Link from 'next/link';
 
 interface TransactionsSectionProps {
   locale: Locale; 
@@ -49,6 +49,8 @@ const getTransactionIcon = (type: string): string => {
     case 'expense': return '💸';
     case 'transfer': return '↔️';
     case 'debt': return '📝';
+    case 'debt_give': return '📝';
+    case 'debt_take': return '📝';
     case 'debt_repay': return '✅';
     default: return '🧾';
   }
@@ -67,8 +69,8 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
 
   // Filter transactions by selected account
   const filteredTransactions = selectedAccountId
-    ? transactions.data.filter(tx => tx.accountId === selectedAccountId)
-    : transactions.data;
+    ? transactions.data?.filter(tx => tx.accountId === selectedAccountId) || []
+    : transactions.data || [];
     
   // Get 5 most recent transactions
   const recentTransactions = [...filteredTransactions]
@@ -78,13 +80,16 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
   // Loading state
   if (transactions.loading || accounts.loading) {
     return (
-      <Card>
+      <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
         <CardHeader>
           <h2 className="text-xl font-semibold">{t.recentTransactions}</h2>
         </CardHeader>
-        <div className="flex justify-center items-center p-8">
-          <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
-        </div>
+        <CardBody>
+          <div className="flex justify-center items-center p-8" aria-live="polite" aria-busy="true">
+            <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin" role="progressbar"></div>
+            <span className="sr-only">Loading transactions...</span>
+          </div>
+        </CardBody>
       </Card>
     );
   }
@@ -92,42 +97,47 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
   // Error state
   if (transactions.error || accounts.error) {
     return (
-      <Card>
+      <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
         <CardHeader>
           <h2 className="text-xl font-semibold">{t.recentTransactions}</h2>
         </CardHeader>
-        <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md m-4">
-          {transactions.error || accounts.error}
-        </div>
+        <CardBody>
+          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md" role="alert" aria-live="assertive">
+            {transactions.error || accounts.error}
+          </div>
+        </CardBody>
       </Card>
     );
   }
 
   // Helper to find account by id
   const findAccount = (accountId: string): Account | undefined => {
-    return accounts.data.find(account => account.id === accountId);
+    return accounts.data?.find(account => account.id === accountId);
   };
   
   return (
-    <Card>
+    <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
       <CardHeader className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">{t.recentTransactions}</h2>
-        <Button variant="ghost" size="sm">
-          {t.viewAll}
-        </Button>
+        <Link href={`/${locale}/dashboard/transactions`} passHref>
+          <Button variant="ghost" size="sm" className="hover:bg-accent">
+            {t.viewAll}
+          </Button>
+        </Link>
       </CardHeader>
       
       {/* Bank tabs */}
-      {accounts.data.length > 0 && (
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <div className="flex overflow-x-auto">
+      {accounts.data && accounts.data.length > 0 && (
+        <div className="border-b border-border">
+          <div className="flex overflow-x-auto px-4 hide-scrollbar">
             <button
-              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer whitespace-nowrap transition-colors duration-150 ${
                 !selectedAccountId
                   ? 'border-primary-500 text-primary-600 dark:text-primary-400' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
               onClick={() => setSelectedAccountId(null)}
+              aria-pressed={!selectedAccountId}
             >
               All Accounts
             </button>
@@ -135,12 +145,13 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
             {accounts.data.map((account) => (
               <button
                 key={account.id}
-                className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer ${
+                className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer whitespace-nowrap transition-colors duration-150 ${
                   selectedAccountId === account.id
                     ? 'border-primary-500 text-primary-600 dark:text-primary-400' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => setSelectedAccountId(account.id)}
+                aria-pressed={selectedAccountId === account.id}
               >
                 {account.name}
               </button>
@@ -151,18 +162,18 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
       
       {/* Active bank account info */}
       {selectedAccountId && (
-        <div className="p-4 flex items-center gap-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 flex items-center gap-3 border-b border-border">
           {(() => {
             const selectedAccount = findAccount(selectedAccountId);
             if (!selectedAccount) return null;
             
             return (
               <>
-                <div className="w-10 h-10 bg-primary-100 dark:bg-primary-800 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold">
-                  {selectedAccount.name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2)}
+                <div className="w-10 h-10 bg-primary-100 dark:bg-primary-800 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold" aria-hidden="true">
+                  {selectedAccount.name.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-medium">{selectedAccount.name}</p>
+                  <p className="font-medium text-foreground">{selectedAccount.name}</p>
                   <p className="text-primary-600 dark:text-primary-400 font-semibold">${selectedAccount.balance.toFixed(2)}</p>
                 </div>
               </>
@@ -171,79 +182,83 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
         </div>
       )}
       
-      {/* Empty state */}
-      {recentTransactions.length === 0 && (
-        <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No transactions found</p>
-        </div>
-      )}
-      
-      {/* Transactions table */}
-      {recentTransactions.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">{t.transaction}</th>
-                <th className="px-4 py-3 text-right">{t.amount}</th>
-                <th className="px-4 py-3 text-center">{t.status}</th>
-                <th className="px-4 py-3 text-left">{t.date}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {recentTransactions.map((transaction) => {
-                const status = getTransactionStatus();
-                const accountName = findAccount(transaction.accountId)?.name || 'Unknown Account';
-                
-                return (
-                  <motion.tr 
-                    key={transaction.id} 
-                    className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    whileHover={{ 
-                      backgroundColor: "rgba(59, 130, 246, 0.05)", 
-                      transition: { duration: 0.2 } 
-                    }}
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                          <span>{getTransactionIcon(transaction.type)}</span>
+      <CardBody className="p-0">
+        {/* Empty state */}
+        {recentTransactions.length === 0 && (
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">No transactions found</p>
+          </div>
+        )}
+        
+        {/* Transactions table */}
+        {recentTransactions.length > 0 && (
+          <div className="overflow-x-auto" role="region" aria-label="Recent transactions">
+            <table className="w-full">
+              <thead className="bg-muted text-xs uppercase">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left">{t.transaction}</th>
+                  <th scope="col" className="px-4 py-3 text-right">{t.amount}</th>
+                  <th scope="col" className="px-4 py-3 text-center">{t.status}</th>
+                  <th scope="col" className="px-4 py-3 text-left">{t.date}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {recentTransactions.map((transaction) => {
+                  const status = getTransactionStatus();
+                  const accountName = findAccount(transaction.accountId)?.name || 'Unknown Account';
+                  const isIncome = transaction.type === 'income';
+                  const icon = getTransactionIcon(transaction.type);
+                  
+                  return (
+                    <motion.tr 
+                      key={transaction.id} 
+                      className="bg-card hover:bg-card-hover transition-colors"
+                      whileHover={{ 
+                        backgroundColor: "rgba(59, 130, 246, 0.05)", 
+                        transition: { duration: 0.2 } 
+                      }}
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center" aria-hidden="true">
+                            <span>{icon}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-foreground">{transaction.description || 'Transaction'}</span>
+                            <p className="text-xs text-muted-foreground">{accountName}</p>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">{transaction.description || 'Transaction'}</span>
-                          <p className="text-xs text-gray-500">{accountName}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                        {transaction.type === 'income' ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Badge 
-                        variant={
-                          status === 'success' ? 'success' : 
-                          status === 'processing' ? 'primary' : 
-                          'error'
-                        }
-                        size="sm"
-                        rounded
-                      >
-                        <span className="inline-block w-2 h-2 rounded-full mr-1 bg-current"></span>
-                        {status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {formatDate(transaction.date)}
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className={isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} aria-label={`${isIncome ? 'Income' : 'Expense'} of ${Math.abs(transaction.amount).toFixed(2)}`}>
+                          {isIncome ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <Badge 
+                          variant={
+                            status === 'success' ? 'success' : 
+                            status === 'processing' ? 'primary' : 
+                            'error'
+                          }
+                          size="sm"
+                          rounded
+                        >
+                          <span className="inline-block w-2 h-2 rounded-full mr-1 bg-current" aria-hidden="true"></span>
+                          <span>{status}</span>
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-muted-foreground">
+                        {formatDate(transaction.date)}
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardBody>
     </Card>
   );
 }; 

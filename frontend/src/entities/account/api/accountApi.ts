@@ -5,7 +5,8 @@ export interface Account {
   name: string;
   balance: number;
   currency: string;
-  type: 'cash' | 'bank' | 'credit';
+  type?: 'cash' | 'bank' | 'credit';
+  accountTypeId: string;
   icon?: string;
   userId: string;
 }

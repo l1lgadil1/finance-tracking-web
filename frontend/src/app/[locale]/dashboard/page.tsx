@@ -12,7 +12,7 @@ export default function DashboardPage() {
   return (
     <>
       <DashboardContainer locale={locale} />
-      <ActionButtons />
+      <ActionButtons locale={locale} />
     </>
   );
 } 

@@ -15,6 +15,7 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   locale: Locale;
+  defaultTransactionType?: TransactionType;
 }
 
 interface TransactionFormData {
@@ -105,10 +106,11 @@ const translations = {
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
-  locale
+  locale,
+  defaultTransactionType=TransactionType.EXPENSE
 }) => {
   const t = translations[locale] || translations.en;
-  const [transactionType, setTransactionType] = useState<TransactionType>(TransactionType.EXPENSE);
+  const [transactionType, setTransactionType] = useState<TransactionType>(defaultTransactionType);
   const [formData, setFormData] = useState<Partial<TransactionFormData>>({
     type: TransactionType.EXPENSE,
     date: new Date(),
@@ -234,6 +236,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       resetSubmit();
     }
   }, [isSubmitSuccess, onClose, resetSubmit]);
+
+  useEffect(() => {
+    if(defaultTransactionType) {
+      setTransactionType(defaultTransactionType);
+    }
+  }, [defaultTransactionType]);
 
   const modalVariants = {
     hidden: {
@@ -370,6 +378,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     { value: TransactionType.DEBT_TAKE, label: t.types.debtTake, key: 'debt_take' },
     { value: TransactionType.DEBT_REPAY, label: t.types.debtRepay, key: 'debt_repay' },
   ];
+
+
 
   return (
     <AnimatePresence>

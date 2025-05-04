@@ -84,8 +84,9 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
           <h2 className="text-xl font-semibold">{t.financialOverview}</h2>
         </CardHeader>
         <CardBody>
-          <div className="flex justify-center items-center p-8">
-            <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+          <div className="flex justify-center items-center p-8" aria-live="polite" aria-busy="true">
+            <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin" role="progressbar" aria-label={t.loading}></div>
+            <span className="sr-only">{t.loading}</span>
           </div>
         </CardBody>
       </Card>
@@ -100,7 +101,7 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
           <h2 className="text-xl font-semibold">{t.financialOverview}</h2>
         </CardHeader>
         <CardBody>
-          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
+          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md" role="alert" aria-live="assertive">
             {accounts.error || transactions.error || t.error}
           </div>
         </CardBody>
@@ -109,7 +110,7 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
   }
   
   return (
-    <Card>
+    <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
       <CardHeader>
         <h2 className="text-xl font-semibold">{t.financialOverview}</h2>
       </CardHeader>
@@ -121,8 +122,8 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t.totalBalance}</p>
-            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">${totalBalance.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground" id="total-balance-label">{t.totalBalance}</p>
+            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400" aria-labelledby="total-balance-label">${totalBalance.toFixed(2)}</p>
           </motion.div>
           
           {/* Monthly Income */}
@@ -131,8 +132,8 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t.monthlyIncome}</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">${monthlyIncome.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground" id="monthly-income-label">{t.monthlyIncome}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400" aria-labelledby="monthly-income-label">${monthlyIncome.toFixed(2)}</p>
           </motion.div>
           
           {/* Monthly Expenses */}
@@ -141,8 +142,8 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t.monthlyExpenses}</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">${monthlyExpenses.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground" id="monthly-expenses-label">{t.monthlyExpenses}</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400" aria-labelledby="monthly-expenses-label">${monthlyExpenses.toFixed(2)}</p>
           </motion.div>
           
           {/* Net Savings */}
@@ -151,34 +152,40 @@ export const OverviewSection: FC<OverviewSectionProps> = ({ locale }) => {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t.netSavings}</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">${netSavings.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground" id="net-savings-label">{t.netSavings}</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400" aria-labelledby="net-savings-label">${netSavings.toFixed(2)}</p>
           </motion.div>
         </div>
         
         {/* Expense Categories Chart */}
         <div>
-          <h3 className="text-lg font-medium mb-3">{t.expensesByCategory}</h3>
-          <div className="h-60 w-full bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+          <h3 className="text-lg font-medium mb-3" id="expenses-by-category">{t.expensesByCategory}</h3>
+          <div className="h-60 w-full bg-muted rounded-lg flex items-center justify-center" aria-labelledby="expenses-by-category">
             {/* Pie chart placeholder */}
-            <div className="flex flex-wrap gap-2 p-4">
-              {expenseCategories.map((category, index) => (
-                <motion.div 
-                  key={category.name} 
-                  className="flex items-center gap-2"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <div 
-                    className={`w-3 h-3 rounded-full ${
-                      category.color 
-                        ? '' 
-                        : `bg-primary-${((index % 5) + 3) * 100}`
-                    }`}
-                    style={category.color ? { backgroundColor: category.color } : undefined}
-                  ></div>
-                  <span className="text-sm">{category.name}: ${category.value.toFixed(2)}</span>
-                </motion.div>
-              ))}
+            <div className="flex flex-wrap gap-2 p-4 max-h-52 overflow-y-auto w-full">
+              {expenseCategories.length > 0 ? (
+                expenseCategories.map((category, index) => (
+                  <motion.div 
+                    key={category.name} 
+                    className="flex items-center gap-2 bg-card px-3 py-1.5 rounded-full shadow-sm"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div 
+                      className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                        category.color 
+                          ? '' 
+                          : `bg-primary-${((index % 5) + 3) * 100}`
+                      }`}
+                      style={category.color ? { backgroundColor: category.color } : undefined}
+                      aria-hidden="true"
+                    ></div>
+                    <span className="text-sm whitespace-nowrap text-foreground">{category.name}: ${category.value.toFixed(2)}</span>
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No expense data available for this month</p>
+              )}
             </div>
           </div>
         </div>

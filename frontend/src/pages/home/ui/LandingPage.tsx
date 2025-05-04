@@ -779,7 +779,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
                   </thead>
                   <tbody>
                     {t.comparison.items.map((item, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/30' : ''}>
+                      <tr key={index} className={index % 2 === 0 ? 'bg-background dark:bg-gray-800/30' : ''}>
                         <td className="py-3 px-4 border-b border-border">{item.feature}</td>
                         <td className="py-3 px-4 text-center border-b border-border">
                           {item.aqsha === true ? (

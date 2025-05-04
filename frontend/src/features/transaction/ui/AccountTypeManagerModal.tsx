@@ -97,7 +97,7 @@ export const AccountTypeManagerModal: React.FC<AccountTypeManagerModalProps> = (
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Manage Account Types">
       <p className="text-gray-500 text-sm mb-2">Add, rename, or delete account types for your records.</p>
-      <div className="divide-y divide-gray-200 bg-gray-50 rounded-lg p-2 min-h-[400px] max-h-[80vh] overflow-y-auto">
+      <div className="divide-y divide-gray-200 bg-background rounded-lg p-2 min-h-[400px] max-h-[80vh] overflow-y-auto">
         {loading ? (
           <div>Loading...</div>
         ) : error ? (

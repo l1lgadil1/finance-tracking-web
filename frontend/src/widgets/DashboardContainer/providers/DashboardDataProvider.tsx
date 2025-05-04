@@ -33,7 +33,9 @@ interface DashboardData {
   monthlyIncome: number;
   monthlyExpenses: number;
   netSavings: number;
-  refresh: () => void;
+  refresh: () => Promise<void>;
+  isLoading: boolean;
+  hasErrors: boolean;
 }
 
 // Create a context for the dashboard data
@@ -45,8 +47,24 @@ interface DashboardDataProviderProps {
   locale: Locale;
 }
 
+// Error messages by locale
+const errorMessages = {
+  en: {
+    accounts: 'Failed to load accounts',
+    transactions: 'Failed to load transactions',
+    goals: 'Failed to load goals',
+    ai: 'Failed to load AI recommendations'
+  },
+  ru: {
+    accounts: 'Не удалось загрузить счета',
+    transactions: 'Не удалось загрузить транзакции',
+    goals: 'Не удалось загрузить цели',
+    ai: 'Не удалось загрузить рекомендации ИИ'
+  }
+};
+
 // Dashboard data provider component
-export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children }) => {
+export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children, locale }) => {
   // State for accounts
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState<boolean>(true);
@@ -66,6 +84,9 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation | null>(null);
   const [aiLoading, setAiLoading] = useState<boolean>(true);
   const [aiError, setAiError] = useState<string | null>(null);
+  
+  // Get error messages for the current locale
+  const errors = errorMessages[locale as keyof typeof errorMessages] || errorMessages.en;
   
   // Financial metrics
   const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
@@ -91,6 +112,10 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
     
   const netSavings = monthlyIncome - monthlyExpenses;
   
+  // Overall loading and error states
+  const isLoading = accountsLoading || transactionsLoading || goalsLoading || aiLoading;
+  const hasErrors = Boolean(accountsError || transactionsError || goalsError || aiError);
+  
   // Fetch dashboard data from the API
   const fetchDashboardData = async () => {
     // Fetch accounts
@@ -101,7 +126,7 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
       setAccounts(accountsData);
     } catch (error) {
       console.error('Error fetching accounts:', error);
-      setAccountsError('Failed to load accounts');
+      setAccountsError(errors.accounts);
     } finally {
       setAccountsLoading(false);
     }
@@ -124,7 +149,7 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
       setTransactions(transactionsData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      setTransactionsError('Failed to load transactions');
+      setTransactionsError(errors.transactions);
     } finally {
       setTransactionsLoading(false);
     }
@@ -137,7 +162,7 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
       setGoals(goalsData);
     } catch (error) {
       console.error('Error fetching goals:', error);
-      setGoalsError('Failed to load goals');
+      setGoalsError(errors.goals);
     } finally {
       setGoalsLoading(false);
     }
@@ -150,16 +175,16 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
       setAiRecommendations(aiData);
     } catch (error) {
       console.error('Error fetching AI recommendations:', error);
-      setAiError('Failed to load AI recommendations');
+      setAiError(errors.ai);
     } finally {
       setAiLoading(false);
     }
   };
   
-  // Fetch data on component mount
+  // Fetch data on component mount and when locale changes
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [locale]);
   
   // Create the context value
   const contextValue: DashboardData = {
@@ -187,7 +212,9 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
     monthlyIncome,
     monthlyExpenses,
     netSavings,
-    refresh: fetchDashboardData
+    refresh: fetchDashboardData,
+    isLoading,
+    hasErrors
   };
   
   return (

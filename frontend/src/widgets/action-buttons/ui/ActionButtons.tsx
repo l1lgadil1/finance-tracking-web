@@ -6,6 +6,7 @@ import { BiBrain } from 'react-icons/bi';
 import { IoMdAdd } from 'react-icons/io';
 import { AIAssistantModal } from '@/features/ai-assistant/ui/AIAssistantModal';
 import { TransactionModal } from '@/features/transaction/ui/TransactionModal';
+import { TransactionType } from '@/shared/constants/finance';
 
 interface ActionButtonsProps {
   locale: Locale;
@@ -58,6 +59,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ locale }) => {
       />
 
       <TransactionModal
+        defaultTransactionType={TransactionType.EXPENSE}
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
         locale={locale}

@@ -24,40 +24,49 @@ const navigationItems: NavigationItem[] = [
 
 export const Sidebar: FC<SidebarProps> = ({ locale, activeHref }) => {
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 shadow-md">
+    <aside className="w-64 bg-card border-r border-border transition-colors duration-200" role="navigation" aria-label="Main Navigation">
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-border">
         <Link 
           href={`/${locale}`}
-          className="flex items-center gap-2 text-primary-600 dark:text-primary-400"
+          className="flex items-center gap-2 text-primary-600 dark:text-primary-400 transition-colors duration-200"
+          aria-label="Go to home page"
         >
           <span className="text-xl font-semibold">AqshaTracker</span>
         </Link>
       </div>
       
       {/* Navigation items */}
-      <div className="py-4">
-        <ul>
+      <nav className="py-4">
+        <ul role="menu">
           {navigationItems.map((item, index) => {
             const Icon = item.icon;
+            // Check if the current path includes the item path
+            // Special case for dashboard as it's a prefix for all routes
+            const isActive = item.href === '/dashboard' 
+              ? activeHref === '/dashboard' || activeHref === '/'
+              : activeHref.includes(item.href);
+            
             return (
-              <li key={index}>
+              <li key={index} role="none">
                 <Link 
                   href={`/${locale}${item.href}`}
                   className={`
-                    flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300
-                    hover:bg-gray-100 dark:hover:bg-gray-700
-                    ${item.href === activeHref ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : ''}
+                    flex items-center gap-3 px-4 py-3 text-foreground
+                    hover:bg-accent transition-colors duration-150
+                    ${isActive ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 font-medium' : ''}
                   `}
+                  aria-current={isActive ? 'page' : undefined}
+                  role="menuitem"
                 >
-                  <Icon className="text-xl" />
+                  <Icon className="text-xl flex-shrink-0" aria-hidden="true" />
                   <span>{item.label}</span>
                 </Link>
               </li>
             );
           })}
         </ul>
-      </div>
-    </div>
+      </nav>
+    </aside>
   );
 }; 

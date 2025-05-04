@@ -11,6 +11,7 @@
 - React Query for server state
 - React Hook Form for forms
 - Zod for validation
+- Framer Motion for animations
 
 ### Code Organization
 - Feature Sliced Design (FSD) architecture
@@ -24,6 +25,7 @@
   │   ├── api/          # API client
   │   ├── config/       # Configuration
   │   ├── lib/          # Libraries
+  │   ├── docs/         # Documentation
   │   └── ui/           # UI components
   └── widgets/          # Complex UI blocks
   ```
@@ -41,12 +43,32 @@
       └── feature.utils.ts
   ```
 
+### Theme System
+- CSS Variables for dynamic theming
+- Semantic color tokens for light/dark modes
+- Component-specific variables
+- Tailwind integration with CSS variables
+- Accessibility-focused with proper contrast ratios (WCAG AA compliant)
+- Focus states for keyboard navigation
+- UI showcase and documentation with contrast examples
+- Support for high-contrast modes
+
 ### Data Management
 - No mock data in production
 - Proper API integration
 - Type-safe data handling
 - Proper error boundaries
 - Loading states
+
+### UI Components
+- Button: Primary, Secondary, Outline, Ghost, Link, Destructive variants
+- Card: Default, Secondary, Outline, Ghost variants with optional hover effects
+- Input: Standard, with helper text, with error, with icon
+- Modal: Flexible modal system with customizable header, body, footer
+- Toast: Notification system with Success, Error, Warning, Info variants
+- Toast Provider: Context-based toast management with centralized control
+- Theme Toggle: Light/dark mode switcher
+- Form components with validation
 
 ## Backend Architecture
 
@@ -163,12 +185,14 @@
 ## Frontend
 - **Framework:** Next.js (React, App Router)
 - **Architecture:** Feature Sliced Design (FSD)
-- **Styling:** Tailwind CSS, custom theme variables
+- **Styling:** Tailwind CSS, semantic theme system with CSS variables
 - **State Management:** Zustand (global), React Query (server)
+- **Theming:** Light/dark mode with CSS variables, semantic color tokens, accessibility-focused
 - **i18n:** Custom implementation, component-level dictionaries, English/Russian
-- **Theming:** Light/dark mode, theme variables
+- **Notifications:** Toast system with context-based state management
 - **Visualization:** Recharts
 - **Icons:** React Icons
+- **Animation:** Framer Motion
 - **Testing:** Jest, React Testing Library, Cypress
 - **PWA:** Planned
 
@@ -176,8 +200,11 @@
 - All backend endpoints must be validated and documented
 - All frontend components must support i18n, theming, and responsiveness
 - Strict type safety throughout (TypeScript)
+- All UI components must use the semantic theme system
+- All components must be accessible (WCAG compliant)
 - No mock data in production
 - Data scoping: All user data must be isolated by userId
 - Error/loading states required for all async operations
 - Reuse shared UI components where possible
 - Accessibility and performance optimizations required 
+- All components must have proper TypeScript typing (no 'any' types) 

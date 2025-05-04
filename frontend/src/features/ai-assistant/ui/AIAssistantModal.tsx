@@ -116,7 +116,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
 
             {/* Content */}
             <div className="space-y-4">
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <div className="bg-background dark:bg-gray-700 rounded-lg p-4">
                 <p className="text-gray-600 dark:text-gray-300">
                   {t.description}
                 </p>

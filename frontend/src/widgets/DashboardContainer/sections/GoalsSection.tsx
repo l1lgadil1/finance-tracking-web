@@ -99,7 +99,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
           <h2 className="text-xl font-semibold">{t.goals}</h2>
         </CardHeader>
         <CardBody>
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 text-center rounded-md mb-4">
+          <div className="p-4 bg-background text-center rounded-md mb-4">
             {gt.noGoals}
           </div>
           <Button fullWidth variant="outline" onClick={handleOpenModal}>{gt.addGoal}</Button>
@@ -148,24 +148,24 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ t, locale }) => {
           return (
             <motion.div 
               key={goal.id}
-              className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              className="p-4 bg-background rounded-lg"
               whileHover={{ scale: 1.01 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium">{goal.title || 'Unnamed Goal'}</h3>
+                <h3 className="font-medium text-foreground">{goal.title || 'Unnamed Goal'}</h3>
                 <Badge variant="primary" size="sm">
                   {daysRemaining} {gt.daysLeft}
                 </Badge>
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>${(goal.current || 0).toFixed(2)} {gt.saved}</span>
                   <span>${(goal.target || 0).toFixed(2)} {gt.goal}</span>
                 </div>
                 
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div className="w-full bg-muted rounded-full h-2.5">
                   <motion.div 
                     className={`h-2.5 rounded-full ${progressColor}`}
                     style={{ width: `${progress}%` }}
