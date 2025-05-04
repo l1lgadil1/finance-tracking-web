@@ -24,9 +24,9 @@ const navigationItems: NavigationItem[] = [
 
 export const Sidebar: FC<SidebarProps> = ({ locale, activeHref }) => {
   return (
-    <aside className="w-64 bg-card border-r border-border transition-colors duration-200" role="navigation" aria-label="Main Navigation">
+    <aside className="w-64 bg-card border-r border-border transition-colors h-full duration-200" role="navigation" aria-label="Main Navigation">
       {/* Logo */}
-      <div className="p-4 border-b border-border">
+      <div className="h-16 px-4 flex items-center  border-b border-border">
         <Link 
           href={`/${locale}`}
           className="flex items-center gap-2 text-primary-600 dark:text-primary-400 transition-colors duration-200"

@@ -47,7 +47,7 @@ export const DashboardLayout: FC<DashboardLayoutProps> = ({ children, locale }) 
   }, [pathname]);
   
   return (
-    <div className="flex h-screen bg-background w-full" role="application">
+    <div className="flex h-screen bg-background w-full overflow-hidden" role="application">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
@@ -58,7 +58,7 @@ export const DashboardLayout: FC<DashboardLayoutProps> = ({ children, locale }) 
       )}
       
       {/* Sidebar navigation */}
-      <div className={`fixed lg:static lg:flex-shrink-0 z-30 transition-transform duration-300 ${
+      <div className={`h-screen fixed lg:static lg:flex-shrink-0 z-30 transition-transform duration-300 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         <Sidebar locale={locale} activeHref={pathWithoutLocale} />
@@ -74,7 +74,7 @@ export const DashboardLayout: FC<DashboardLayoutProps> = ({ children, locale }) 
         >
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 mr-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="block lg:hidden p-2 mr-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             <FiMenu className="h-5 w-5" />

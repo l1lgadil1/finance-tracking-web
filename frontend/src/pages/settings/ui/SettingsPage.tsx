@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiUser, FiShield, FiBell, FiGlobe, FiDatabase, FiCreditCard, FiHelpCircle, FiMoon, FiMenu } from 'react-icons/fi';
+import { FiUser, FiShield, FiBell, FiGlobe, FiDatabase, FiCreditCard, FiHelpCircle, FiMoon, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Card, CardBody } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 import { ProfileSection } from './sections/ProfileSection';
@@ -30,13 +30,56 @@ type SettingsSection = {
 export const SettingsPage = ({ params }: SettingsPageProps) => {
   const [activeSection, setActiveSection] = useState<string>('profile');
   const [mounted, setMounted] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(false);
   const { locale } = params;
+
+  // For mobile tab scrolling
+  const tabScrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   // Ensure component is mounted to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Check scroll capabilities on mount and window resize
+  useEffect(() => {
+    const checkScroll = () => {
+      if (tabScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = tabScrollRef.current;
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10); // 10px buffer
+      }
+    };
+
+    // Initial check
+    checkScroll();
+
+    // Re-check on window resize
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [mounted]);
+
+  // Handle scroll events to update button states
+  const handleTabScroll = () => {
+    if (tabScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabScrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10); // 10px buffer
+    }
+  };
+
+  // Scroll the tabs left or right
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabScrollRef.current) {
+      const scrollAmount = 200; // Amount to scroll
+      const currentScroll = tabScrollRef.current.scrollLeft;
+      tabScrollRef.current.scrollTo({
+        left: direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const sections: SettingsSection[] = [
     {
@@ -124,25 +167,57 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-primary-600 flex items-center">
-        <button 
-          onClick={() => setSidebarVisible(!sidebarVisible)}
-          className="lg:hidden p-2 mr-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          aria-label={sidebarVisible ? "Hide settings menu" : "Show settings menu"}
+      <h1 className="text-3xl font-bold mb-8 text-primary-600">Settings</h1>
+      
+      {/* Mobile tab navigation */}
+      <div className="lg:hidden mb-6 relative">
+        {canScrollLeft && (
+          <button 
+            onClick={() => scrollTabs('left')}
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-card shadow-md rounded-full p-1"
+            aria-label="Scroll tabs left"
+          >
+            <FiChevronLeft className="h-5 w-5" />
+          </button>
+        )}
+        
+        <div 
+          ref={tabScrollRef}
+          className="flex overflow-x-auto hide-scrollbar py-2" 
+          onScroll={handleTabScroll}
         >
-          <FiMenu className="h-5 w-5" />
-        </button>
-        Settings
-      </h1>
+          <div className="inline-flex space-x-2 px-4">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`flex flex-col items-center rounded-lg py-2 px-4 min-w-[80px] ${
+                  activeSection === section.id
+                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                    : 'bg-card hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                {section.icon}
+                <span className="text-xs mt-1 text-center">{section.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {canScrollRight && (
+          <button 
+            onClick={() => scrollTabs('right')}
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-card shadow-md rounded-full p-1"
+            aria-label="Scroll tabs right"
+          >
+            <FiChevronRight className="h-5 w-5" />
+          </button>
+        )}
+      </div>
       
       <div className="flex flex-col lg:flex-row gap-8 relative">
-        {/* Settings sidebar - hidden by default on mobile, toggleable */}
-        <div className={`
-          ${sidebarVisible ? 'block' : 'hidden'} lg:block
-          w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-8 lg:self-start
-          fixed lg:static inset-0 z-10 bg-background lg:bg-transparent p-4 lg:p-0
-          ${sidebarVisible ? 'animate-fadeIn' : ''}
-        `}>
+        {/* Settings sidebar - desktop only */}
+        <div className="hidden lg:block lg:w-64 lg:shrink-0 lg:sticky lg:top-8 lg:self-start">
           <Card className="w-full">
             <CardBody className="p-0">
               <motion.nav
@@ -155,10 +230,7 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
                   <motion.button
                     key={section.id}
                     variants={itemVariants}
-                    onClick={() => {
-                      setActiveSection(section.id);
-                      setSidebarVisible(false);
-                    }}
+                    onClick={() => setActiveSection(section.id)}
                     className={`flex items-center gap-3 p-4 text-left transition-colors ${
                       activeSection === section.id
                         ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-l-4 border-primary-500'
