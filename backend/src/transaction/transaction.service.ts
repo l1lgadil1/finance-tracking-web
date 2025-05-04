@@ -257,35 +257,114 @@ export class TransactionService {
     userId: string,
     query: FindTransactionsQueryDto,
   ): Promise<TransactionResponseDto[]> {
-    const { type, profileId, accountId, categoryId, dateFrom, dateTo } = query;
+    const {
+      type,
+      profileId,
+      accountId,
+      categoryId,
+      dateFrom,
+      dateTo,
+      minAmount,
+      maxAmount,
+      search,
+      startDate,
+      endDate,
+    } = query;
 
-    // Build the where clause type-safely
-    const where: Prisma.TransactionWhereInput = {
-      userId,
-      ...(type ? { type: type as $Enums.TransactionType } : {}),
-      ...(profileId && { profileId }),
-      ...(accountId && { accountId }),
-      ...(categoryId && { categoryId }),
-      ...(dateFrom &&
-        dateTo && {
-          date: {
-            gte: dateFrom,
-            lte: dateTo,
+    try {
+      // Build the where clause for filtering
+      const whereClause: Prisma.TransactionWhereInput = {
+        userId,
+      };
+
+      // Handle various filters
+      if (type) {
+        whereClause.type = type as $Enums.TransactionType;
+      }
+
+      if (profileId) {
+        whereClause.profileId = profileId;
+      }
+
+      if (accountId) {
+        // For account filter, we need to check multiple fields
+        whereClause.OR = [
+          { accountId },
+          { fromAccountId: accountId },
+          { toAccountId: accountId },
+        ];
+      }
+
+      if (categoryId) {
+        whereClause.categoryId = categoryId;
+      }
+
+      // Handle date filters (prioritize dateFrom/dateTo over startDate/endDate for backward compatibility)
+      if (dateFrom || dateTo || startDate || endDate) {
+        whereClause.date = {};
+
+        // Use dateFrom or fall back to startDate
+        const effectiveStartDate =
+          dateFrom || (startDate ? new Date(startDate) : null);
+        if (effectiveStartDate) {
+          whereClause.date.gte = effectiveStartDate;
+        }
+
+        // Use dateTo or fall back to endDate
+        const effectiveEndDate = dateTo || (endDate ? new Date(endDate) : null);
+        if (effectiveEndDate) {
+          const endDateTime = new Date(effectiveEndDate);
+          // Set time to end of day for inclusive filtering
+          endDateTime.setHours(23, 59, 59, 999);
+          whereClause.date.lte = endDateTime;
+        }
+      }
+
+      // Handle amount range filters
+      if (minAmount !== undefined || maxAmount !== undefined) {
+        whereClause.amount = {};
+
+        if (minAmount !== undefined) {
+          whereClause.amount.gte = minAmount;
+        }
+
+        if (maxAmount !== undefined) {
+          whereClause.amount.lte = maxAmount;
+        }
+      }
+
+      // Handle search filter (search in description and contactName)
+      if (search) {
+        whereClause.OR = [
+          ...(whereClause.OR || []),
+          {
+            description: {
+              contains: search,
+              mode: 'insensitive',
+            },
           },
-        }),
-      ...(!dateTo && dateFrom && { date: { gte: dateFrom } }),
-      ...(dateTo && !dateFrom && { date: { lte: dateTo } }),
-    };
+          {
+            contactName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
 
-    const transactions = await this.prisma.transaction.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      include: {
-        category: true,
-      },
-    });
+      // Query the transactions
+      const transactions = await this.prisma.transaction.findMany({
+        where: whereClause,
+        orderBy: {
+          date: 'desc', // Most recent first
+        },
+      });
 
-    return transactions.map(this.mapToDto);
+      return transactions.map(this.mapToDto);
+    } catch (error) {
+      console.error('Error finding transactions:', error);
+      throw new InternalServerErrorException('Failed to retrieve transactions');
+    }
   }
 
   async findOne(userId: string, id: string): Promise<TransactionResponseDto> {
@@ -493,12 +572,13 @@ export class TransactionService {
     });
 
     if (!debt) {
-      throw new NotFoundException('Debt transaction not found');
+      throw new NotFoundException(
+        `Debt transaction with ID ${debtId} not found`,
+      );
     }
-
     if (debt.userId !== userId) {
       throw new ForbiddenException(
-        'You do not have access to this debt transaction',
+        `Access to debt transaction with ID ${debtId} denied`,
       );
     }
 
@@ -508,6 +588,69 @@ export class TransactionService {
 
     if (!['debt_give', 'debt_take'].includes(debt.type)) {
       throw new BadRequestException('The referenced transaction is not a debt');
+    }
+  }
+
+  async getStatistics(
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{ totalIncome: number; totalExpense: number; balance: number }> {
+    try {
+      // Build where clause for transaction filtering
+      const whereClause: Prisma.TransactionWhereInput = {
+        userId,
+        // Only include income and expense for basic statistics
+        type: {
+          in: [$Enums.TransactionType.income, $Enums.TransactionType.expense],
+        },
+      };
+
+      // Add date filters if provided
+      if (startDate || endDate) {
+        whereClause.date = {};
+
+        if (startDate) {
+          whereClause.date.gte = new Date(startDate);
+        }
+
+        if (endDate) {
+          const endDateTime = new Date(endDate);
+          // Set time to end of day for inclusive filtering
+          endDateTime.setHours(23, 59, 59, 999);
+          whereClause.date.lte = endDateTime;
+        }
+      }
+
+      // Query transactions matching the criteria
+      const transactions = await this.prisma.transaction.findMany({
+        where: whereClause,
+        select: {
+          type: true,
+          amount: true,
+        },
+      });
+
+      // Calculate totals
+      const totalIncome = transactions
+        .filter((t) => t.type === $Enums.TransactionType.income)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const totalExpense = transactions
+        .filter((t) => t.type === $Enums.TransactionType.expense)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const balance = totalIncome - totalExpense;
+
+      return { totalIncome, totalExpense, balance };
+    } catch (error) {
+      console.error('Error calculating transaction statistics:', error);
+      if (error instanceof Date) {
+        throw new BadRequestException('Invalid date format');
+      }
+      throw new InternalServerErrorException(
+        'Failed to calculate transaction statistics',
+      );
     }
   }
   // ---

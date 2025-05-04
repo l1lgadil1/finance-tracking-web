@@ -1,0 +1,315 @@
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Card, CardHeader, CardBody } from '@/shared/ui/Card';
+import { Badge } from '@/shared/ui/Badge';
+import { TransactionCard } from '@/shared/ui/TransactionCard';
+import { Button } from '@/shared/ui/Button';
+import { FiEdit2, FiMoreHorizontal, FiTrash2 } from 'react-icons/fi';
+import { Transaction } from '@/shared/api/types';
+import { Locale } from '@/shared/lib/i18n';
+
+interface TransactionsListProps {
+  transactions: Transaction[];
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onView: (id: string) => void;
+  displayMode: 'compact' | 'detailed';
+  groupByDate: boolean;
+  isLoading: boolean;
+  locale: Locale;
+}
+
+// Translations for the transactions list
+const translations = {
+  en: {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+    lastMonth: 'Last Month',
+    earlier: 'Earlier',
+    noTransactions: 'No transactions found.',
+    loadingTransactions: 'Loading transactions...',
+    transaction: 'transaction',
+    transactions: 'transactions',
+    edit: 'Edit',
+    delete: 'Delete',
+    view: 'View',
+  },
+  ru: {
+    today: 'Сегодня',
+    yesterday: 'Вчера',
+    thisWeek: 'Эта неделя',
+    thisMonth: 'Этот месяц',
+    lastMonth: 'Прошлый месяц',
+    earlier: 'Ранее',
+    noTransactions: 'Транзакции не найдены.',
+    loadingTransactions: 'Загрузка транзакций...',
+    transaction: 'транзакция',
+    transactions: 'транзакций',
+    edit: 'Изменить',
+    delete: 'Удалить',
+    view: 'Просмотр',
+  }
+};
+
+// Get relative date label (Today, Yesterday, etc.)
+const getRelativeDateLabel = (date: Date, t: Record<string, string>): string => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const dateOnly = new Date(date);
+  dateOnly.setHours(0, 0, 0, 0);
+  
+  if (dateOnly.getTime() === today.getTime()) {
+    return t.today;
+  } else if (dateOnly.getTime() === yesterday.getTime()) {
+    return t.yesterday;
+  }
+  
+  // This week
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  
+  // This month
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  // Last month
+  const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+  
+  if (dateOnly >= startOfWeek && dateOnly < today) {
+    return t.thisWeek;
+  } else if (dateOnly >= startOfMonth && dateOnly < startOfWeek) {
+    return t.thisMonth;
+  } else if (dateOnly >= startOfLastMonth && dateOnly <= endOfLastMonth) {
+    return t.lastMonth;
+  }
+  
+  return t.earlier;
+};
+
+export const TransactionsList: React.FC<TransactionsListProps> = ({
+  transactions,
+  onEdit,
+  onDelete,
+  onView,
+  displayMode,
+  groupByDate,
+  isLoading,
+  locale
+}) => {
+  const [visibleCount, setVisibleCount] = useState(20);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const t = translations[locale];
+
+  // Group transactions by date for display
+  const groupedTransactions = groupByDate
+    ? transactions.reduce((groups, transaction) => {
+        // Get date without time for grouping
+        const date = new Date(transaction.date);
+        date.setHours(0, 0, 0, 0);
+        const dateKey = date.toISOString().split('T')[0];
+        
+        if (!groups[dateKey]) {
+          groups[dateKey] = {
+            date,
+            label: getRelativeDateLabel(date, t),
+            transactions: []
+          };
+        }
+        
+        groups[dateKey].transactions.push(transaction);
+        return groups;
+      }, {} as Record<string, { date: Date; label: string; transactions: Transaction[] }>)
+    : { 'all': { date: new Date(), label: '', transactions } };
+
+  // Sort groups by date (most recent first)
+  const sortedGroups = Object.values(groupedTransactions).sort((a, b) => {
+    return b.date.getTime() - a.date.getTime();
+  });
+
+  // Infinite scrolling setup
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading && visibleCount < transactions.length) {
+          setVisibleCount(prev => Math.min(prev + 10, transactions.length));
+        }
+      },
+      { threshold: 0.5 }
+    );
+    
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+    
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [isLoading, transactions.length, visibleCount]);
+
+  // Reset visible count when transactions change
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [transactions]);
+
+  // Loading state
+  if (isLoading && transactions.length === 0) {
+    return (
+      <Card>
+        <CardBody>
+          <div className="flex justify-center items-center p-8">
+            <div className="w-8 h-8 border-t-4 border-primary-500 rounded-full animate-spin mr-3"></div>
+            <p className="text-muted-foreground">{t.loadingTransactions}</p>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Empty state
+  if (transactions.length === 0) {
+    return (
+      <Card>
+        <CardBody>
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">{t.noTransactions}</p>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // Container animation variants for staggered animation
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3 }
+    }
+  };
+
+  // Helper to get correct plural form
+  const getTransactionText = (count: number) => {
+    if (locale === 'ru') {
+      // Russian has complex plural forms
+      if (count % 10 === 1 && count % 100 !== 11) {
+        return `${count} транзакция`;
+      } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+        return `${count} транзакции`;
+      } else {
+        return `${count} транзакций`;
+      }
+    } else {
+      // English has simple plural form
+      return `${count} ${count === 1 ? t.transaction : t.transactions}`;
+    }
+  };
+
+  return (
+    <motion.div
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {sortedGroups.slice(0, Math.ceil(visibleCount / 5)).map((group) => (
+        <motion.div key={group.date.toISOString()} variants={itemVariants}>
+          <Card>
+            {groupByDate && (
+              <CardHeader className="flex justify-between items-center py-2 px-4 bg-background dark:bg-gray-800/80">
+                <h3 className="font-semibold">{group.label}</h3>
+                <Badge variant="primary" size="sm">
+                  {getTransactionText(group.transactions.length)}
+                </Badge>
+              </CardHeader>
+            )}
+            
+            <CardBody className="p-0 divide-y divide-gray-200 dark:divide-gray-700">
+              {group.transactions.map((transaction) => (
+                <div key={transaction.id} className="p-0">
+                  <div className="relative">
+                    <TransactionCard
+                      id={transaction.id}
+                      description={transaction.description || 'Unnamed Transaction'}
+                      amount={transaction.amount}
+                      date={new Date(transaction.date)}
+                      category={transaction.categoryId || ''}
+                      type={transaction.type as 'income' | 'expense' | 'transfer' | 'debt'}
+                      account={transaction.accountId || ''}
+                      onClick={() => onView(transaction.id)}
+                      className={displayMode === 'compact' ? 'py-2' : ''}
+                    />
+                    
+                    {/* Actions overlay */}
+                    <div className="absolute top-2 right-2 flex space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(transaction.id);
+                        }}
+                        title={t.edit}
+                        className="h-7 w-7 p-0"
+                      >
+                        <FiEdit2 size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(transaction.id);
+                        }}
+                        title={t.delete}
+                        className="h-7 w-7 p-0"
+                      >
+                        <FiTrash2 size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onView(transaction.id);
+                        }}
+                        title={t.view}
+                        className="h-7 w-7 p-0"
+                      >
+                        <FiMoreHorizontal size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardBody>
+          </Card>
+        </motion.div>
+      ))}
+      
+      {visibleCount < transactions.length && (
+        <div ref={loadMoreRef} className="flex justify-center py-4">
+          <div className="w-8 h-8 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+        </div>
+      )}
+    </motion.div>
+  );
+}; 

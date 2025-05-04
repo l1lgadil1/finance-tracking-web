@@ -111,6 +111,36 @@ export class TransactionController {
     type: Date,
     description: 'ISO 8601 format',
   })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Alternative to dateFrom, in YYYY-MM-DD format',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'Alternative to dateTo, in YYYY-MM-DD format',
+  })
+  @ApiQuery({
+    name: 'minAmount',
+    required: false,
+    type: Number,
+    description: 'Minimum transaction amount filter',
+  })
+  @ApiQuery({
+    name: 'maxAmount',
+    required: false,
+    type: Number,
+    description: 'Maximum transaction amount filter',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search text for transaction description or contact name',
+  })
   findAll(
     @CurrentUser() userId: string,
     @Query() query: FindTransactionsQueryDto,
@@ -133,6 +163,44 @@ export class TransactionController {
   ): Promise<TransactionResponseDto[]> {
     console.log('findActiveDebts called for userId', userId);
     return this.transactionService.findActiveDebts(userId);
+  }
+
+  @Get('statistics')
+  @ApiOperation({ summary: 'Get transaction statistics for the current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction statistics.',
+    schema: {
+      type: 'object',
+      properties: {
+        totalIncome: { type: 'number', description: 'Total income amount' },
+        totalExpense: { type: 'number', description: 'Total expense amount' },
+        balance: {
+          type: 'number',
+          description: 'Net balance (income - expense)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: Date,
+    description: 'Start date in ISO format (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: Date,
+    description: 'End date in ISO format (YYYY-MM-DD)',
+  })
+  getStatistics(
+    @CurrentUser() userId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<{ totalIncome: number; totalExpense: number; balance: number }> {
+    return this.transactionService.getStatistics(userId, startDate, endDate);
   }
 
   @Get(':id')

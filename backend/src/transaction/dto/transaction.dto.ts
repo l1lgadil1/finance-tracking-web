@@ -136,6 +136,11 @@ export const FindTransactionsQuerySchema = z
     categoryId: z.string().uuid().optional(),
     dateFrom: z.coerce.date().optional(),
     dateTo: z.coerce.date().optional(),
+    minAmount: z.coerce.number().optional(),
+    maxAmount: z.coerce.number().optional(),
+    search: z.string().optional(),
+    startDate: z.string().optional(), // for matching frontend naming convention
+    endDate: z.string().optional(), // for matching frontend naming convention
     // Add pagination later: page: z.coerce.number().int().positive().optional().default(1),
     // Add pagination later: limit: z.coerce.number().int().positive().optional().default(10),
   })

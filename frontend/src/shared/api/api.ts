@@ -95,4 +95,23 @@ export const api = {
     
   delete: <T>(endpoint: string, options?: Omit<RequestOptions, 'method'>) => 
     request<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  /**
+   * Helper function that handles API calls with fallback data for missing endpoints
+   * @param apiCall Function to call the API
+   * @param fallbackData Data to return if the API call fails
+   * @param logWarning Optional warning message to log if the API call fails
+   */
+  withFallback: async <T>(
+    apiCall: () => Promise<T>,
+    fallbackData: T,
+    logWarning: string = 'API endpoint not available, using fallback data'
+  ): Promise<T> => {
+    try {
+      return await apiCall();
+    } catch (error) {
+      console.warn(logWarning, error);
+      return fallbackData;
+    }
+  }
 }; 

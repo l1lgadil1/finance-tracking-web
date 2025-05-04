@@ -1,30 +1,103 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiHelpCircle, FiMessageCircle, FiFileText, FiYoutube, FiExternalLink, FiMail } from 'react-icons/fi';
 import { Card, CardHeader, CardBody, Button } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
+import { supportApi, FAQItem, SupportResource } from '@/entities/support/api/supportApi';
 
 interface SupportSectionProps {
   locale: Locale;
 }
 
-type SupportResource = {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  actionLabel: string;
-  actionUrl: string;
+const SupportIconMap: Record<string, React.ReactNode> = {
+  'message': <FiMessageCircle className="w-5 h-5" />,
+  'docs': <FiFileText className="w-5 h-5" />,
+  'video': <FiYoutube className="w-5 h-5" />,
+  'faq': <FiHelpCircle className="w-5 h-5" />,
+  'mail': <FiMail className="w-5 h-5" />
 };
 
 export const SupportSection = ({ locale }: SupportSectionProps) => {
-  const supportResources: SupportResource[] = [
+  const [supportResources, setSupportResources] = useState<SupportResource[]>([]);
+  const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch support data
+  useEffect(() => {
+    const fetchSupportData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch support resources with fallback
+        try {
+          const resources = await supportApi.getSupportResources();
+          setSupportResources(resources);
+        } catch (err) {
+          console.warn('Support resources endpoint not available, using fallback data');
+          // Fallback data is applied at render time with defaultSupportResources
+        }
+        
+        // Fetch FAQ items with fallback
+        try {
+          const faqs = await supportApi.getFAQs();
+          setFaqItems(faqs);
+        } catch (err) {
+          console.warn('FAQs endpoint not available, using fallback data');
+          // Fallback data is applied at render time with defaultFaqItems
+        }
+      } catch (err) {
+        console.error('Error fetching support data:', err);
+        setError('Failed to load support resources. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSupportData();
+  }, []);
+
+  // Handle email support button click
+  const handleEmailSupport = () => {
+    // In a real app, this would open a support ticket form
+    console.log('Open support ticket form');
+    // Simulate API call for ticket creation
+    try {
+      // supportApi.createSupportTicket({ subject: "Support Request", message: "User initiated support request" });
+      alert("Support ticket initiated. Our team will contact you shortly!");
+    } catch (err) {
+      console.warn('Support ticket creation endpoint not available');
+    }
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg">
+        <h3 className="font-semibold">Error</h3>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  // Fallback if no resources are available
+  const defaultSupportResources: SupportResource[] = [
     {
       id: 'contact',
       title: 'Contact Support',
       description: 'Have a question or issue? Our support team is here to help.',
-      icon: <FiMessageCircle className="w-5 h-5" />,
+      icon: 'message',
       actionLabel: 'Send a Message',
       actionUrl: '/support/contact'
     },
@@ -32,43 +105,33 @@ export const SupportSection = ({ locale }: SupportSectionProps) => {
       id: 'documentation',
       title: 'Documentation',
       description: 'Explore our comprehensive guides and documentation.',
-      icon: <FiFileText className="w-5 h-5" />,
+      icon: 'docs',
       actionLabel: 'Read Docs',
       actionUrl: '/docs'
-    },
-    {
-      id: 'tutorials',
-      title: 'Video Tutorials',
-      description: 'Watch step-by-step video guides to master AqshaTracker.',
-      icon: <FiYoutube className="w-5 h-5" />,
-      actionLabel: 'Watch Tutorials',
-      actionUrl: '/tutorials'
-    },
-    {
-      id: 'faq',
-      title: 'Frequently Asked Questions',
-      description: 'Find answers to common questions about AqshaTracker.',
-      icon: <FiHelpCircle className="w-5 h-5" />,
-      actionLabel: 'View FAQs',
-      actionUrl: '/faq'
     }
   ];
 
-  // Mock FAQ data
-  const faqItems = [
+  // Use fetched resources if available, otherwise use defaults
+  const displayResources = supportResources.length > 0 ? supportResources : defaultSupportResources;
+
+  // Fallback if no FAQ items are available
+  const defaultFaqItems: FAQItem[] = [
     {
+      id: '1',
       question: 'How do I add a new account?',
-      answer: 'Go to Accounts and click on the "Add Account" button. Fill in the required information and save.'
+      answer: 'Go to Accounts and click on the "Add Account" button. Fill in the required information and save.',
+      category: 'accounts'
     },
     {
-      question: 'Can I import transactions from my bank?',
-      answer: 'Yes! Go to the Data Management section in Settings and use the import feature to upload data from your bank in CSV format.'
-    },
-    {
+      id: '2',
       question: 'How do I recover my password?',
-      answer: 'On the login page, click on "Forgot Password" and follow the instructions sent to your email.'
+      answer: 'On the login page, click on "Forgot Password" and follow the instructions sent to your email.',
+      category: 'security'
     }
   ];
+
+  // Use fetched FAQ items if available, otherwise use defaults
+  const displayFaqItems = faqItems.length > 0 ? faqItems : defaultFaqItems;
 
   return (
     <div className="space-y-8">
@@ -83,14 +146,14 @@ export const SupportSection = ({ locale }: SupportSectionProps) => {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {supportResources.map((resource) => (
+            {displayResources.map((resource) => (
               <div 
                 key={resource.id}
                 className="border border-border rounded-lg p-4 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
               >
                 <div className="flex">
                   <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-md mr-4 text-primary-600 dark:text-primary-400 flex-shrink-0">
-                    {resource.icon}
+                    {SupportIconMap[resource.icon] || <FiHelpCircle className="w-5 h-5" />}
                   </div>
                   <div>
                     <h3 className="font-medium">{resource.title}</h3>
@@ -120,8 +183,8 @@ export const SupportSection = ({ locale }: SupportSectionProps) => {
         </CardHeader>
         <CardBody>
           <div className="space-y-4">
-            {faqItems.map((item, index) => (
-              <div key={index} className="border-b border-border pb-4 last:border-0 last:pb-0">
+            {displayFaqItems.map((item) => (
+              <div key={item.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
                 <h3 className="font-medium text-lg mb-2">{item.question}</h3>
                 <p className="text-muted-foreground">{item.answer}</p>
               </div>
@@ -144,6 +207,7 @@ export const SupportSection = ({ locale }: SupportSectionProps) => {
             <Button 
               variant="primary"
               leftIcon={<FiMail />}
+              onClick={handleEmailSupport}
             >
               Email Support
             </Button>

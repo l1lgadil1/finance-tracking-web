@@ -6,7 +6,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpDown, Filter } from 'lucide-react';
+import { DollarSign, ArrowUpDown } from 'lucide-react';
 import { 
   Card, CardHeader, CardBody, 
   Button, DatePicker, FinancialSummaryCard
@@ -14,7 +14,8 @@ import {
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { useDashboardData } from '@/widgets/DashboardContainer/providers/DashboardDataProvider';
-import { ChartPeriod, TransactionType, CHART_COLORS } from '@/shared/constants/finance';
+import { ChartPeriod, TransactionType } from '@/shared/constants/finance';
+import { FiCheckCircle } from 'react-icons/fi';
 
 interface AnalyticsPageProps {
   params: {
@@ -113,54 +114,11 @@ const translations = {
 // Type for custom period
 type ExtendedChartPeriod = ChartPeriod | 'custom';
 
-// Sample mockup data for the demonstration
-const mockCategories = [
-  { name: 'Food', value: 1250, color: '#4CAF50' },
-  { name: 'Housing', value: 2100, color: '#2196F3' },
-  { name: 'Transportation', value: 850, color: '#FFC107' },
-  { name: 'Entertainment', value: 450, color: '#9C27B0' },
-  { name: 'Healthcare', value: 320, color: '#F44336' },
-  { name: 'Others', value: 580, color: '#607D8B' }
-];
-
-const mockTrendData = [
-  { month: 'Jan', income: 3500, expenses: 2800 },
-  { month: 'Feb', income: 3200, expenses: 2600 },
-  { month: 'Mar', income: 3800, expenses: 3100 },
-  { month: 'Apr', income: 3600, expenses: 2900 },
-  { month: 'May', income: 4200, expenses: 3400 },
-  { month: 'Jun', income: 4500, expenses: 3200 }
-];
-
-const mockInsights = [
-  {
-    id: 1,
-    title: 'Spending Alert',
-    description: 'Your food expenses increased by 15% compared to last month',
-    type: 'alert',
-    icon: TrendingUp
-  },
-  {
-    id: 2,
-    title: 'Saving Opportunity',
-    description: 'Reducing restaurant visits by 20% could save you $120 monthly',
-    type: 'opportunity',
-    icon: DollarSign
-  },
-  {
-    id: 3,
-    title: 'Positive Trend',
-    description: 'Your savings rate has increased for 3 consecutive months',
-    type: 'positive',
-    icon: TrendingDown
-  }
-];
-
 export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
   const { locale } = params;
   const t = translations[locale] || translations.en;
   const { theme } = useTheme();
-  const { transactions } = useDashboardData();
+  const { transactions, aiRecommendations } = useDashboardData();
   
   // State for period selection
   const [period, setPeriod] = useState<ChartPeriod | ExtendedChartPeriod>(ChartPeriod.MONTHLY);
@@ -189,6 +147,91 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
     
     result.netBalance = result.totalIncome - result.totalExpenses;
     return result;
+  }, [transactions.data]);
+
+  // Calculate category data for pie chart
+  const categoryData = useMemo(() => {
+    if (!transactions.data) return [];
+    
+    // Filter for expense transactions only
+    const expenseTransactions = transactions.data.filter(
+      transaction => transaction.type === TransactionType.EXPENSE
+    );
+    
+    // Group by category and sum amounts
+    const categoryMap = expenseTransactions.reduce((acc, transaction) => {
+      const categoryId = transaction.categoryId;
+      const categoryName = transaction.category?.name || 'Uncategorized';
+      
+      if (!acc[categoryId]) {
+        // Safely assign a color from CHART_COLORS or use a default color
+        const colorIndex = Object.keys(acc).length % 6; // Limit to a reasonable number
+        const defaultColors = ['#4CAF50', '#2196F3', '#FFC107', '#9C27B0', '#F44336', '#607D8B'];
+        const color = transaction.category?.color || defaultColors[colorIndex];
+        
+        acc[categoryId] = {
+          id: categoryId,
+          name: categoryName,
+          value: 0,
+          color: color
+        };
+      }
+      
+      acc[categoryId].value += transaction.amount;
+      return acc;
+    }, {} as Record<string, {id: string, name: string, value: number, color: string}>);
+    
+    return Object.values(categoryMap);
+  }, [transactions.data]);
+
+  // Calculate trend data for line chart
+  const trendData = useMemo(() => {
+    if (!transactions.data) return [];
+    
+    // Get transactions in the last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    // Create a map of month names
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Initialize data array with last 6 months
+    const monthlyData: Record<string, {month: string, income: number, expenses: number}> = {};
+    
+    // Fill with zeros for the last 6 months
+    for (let i = 0; i < 6; i++) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      const monthName = monthNames[date.getMonth()];
+      
+      monthlyData[monthKey] = {
+        month: monthName,
+        income: 0,
+        expenses: 0
+      };
+    }
+    
+    // Sum transactions by month
+    transactions.data.forEach(transaction => {
+      const date = new Date(transaction.date);
+      // Only include transactions from the last 6 months
+      if (date >= sixMonthsAgo) {
+        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+        
+        if (monthlyData[monthKey]) {
+          if (transaction.type === TransactionType.INCOME) {
+            monthlyData[monthKey].income += transaction.amount;
+          } else if (transaction.type === TransactionType.EXPENSE) {
+            monthlyData[monthKey].expenses += transaction.amount;
+          }
+        }
+      }
+    });
+    
+    // Convert to array and sort by date
+    return Object.values(monthlyData).reverse();
   }, [transactions.data]);
 
   // Toggle custom date range selection
@@ -275,236 +318,214 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
         </Card>
       )}
       
-      {/* Overview Section */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">{t.overview.title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FinancialSummaryCard
-            title={t.overview.totalIncome}
-            value={summaryData.totalIncome}
-            icon={<TrendingUp className="w-5 h-5" />}
-            change={{ value: '+8%', positive: true }}
-            className="bg-card"
-          />
-          <FinancialSummaryCard
-            title={t.overview.totalExpenses}
-            value={summaryData.totalExpenses}
-            icon={<TrendingDown className="w-5 h-5" />}
-            change={{ value: '+5%', positive: false }}
-            className="bg-card"
-          />
-          <FinancialSummaryCard
-            title={t.overview.netBalance}
-            value={summaryData.netBalance}
-            icon={<ArrowUpDown className="w-5 h-5" />}
-            change={{ value: '+3%', positive: summaryData.netBalance > 0 }}
-            className="bg-card"
-          />
-        </div>
-      </section>
+      {/* Financial Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <FinancialSummaryCard
+          title={t.overview.totalIncome}
+          value={summaryData.totalIncome}
+          change={{ value: '+5.2%', positive: true }}
+          icon={<DollarSign className="w-5 h-5" />}
+          className="bg-card"
+        />
+        <FinancialSummaryCard
+          title={t.overview.totalExpenses}
+          value={summaryData.totalExpenses}
+          change={{ value: '-2.1%', positive: false }}
+          icon={<ArrowUpDown className="w-5 h-5" />}
+          className="bg-card"
+        />
+        <FinancialSummaryCard
+          title={t.overview.netBalance}
+          value={summaryData.netBalance}
+          change={{ value: '+3.8%', positive: summaryData.netBalance >= 0 }}
+          icon={<DollarSign className="w-5 h-5" />}
+          className="bg-card"
+        />
+      </div>
       
-      {/* Income vs Expenses Section */}
-      <section className="mb-8">
+      {/* Charts Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Income vs Expenses */}
         <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+          <CardHeader>
             <h2 className="text-xl font-semibold">{t.income} vs {t.expenses}</h2>
-            <div className="flex items-center mt-2 sm:mt-0">
-              <Button variant="ghost" size="sm">
-                <Filter className="w-4 h-4 mr-1" />
-                {t.filters}
-              </Button>
-            </div>
           </CardHeader>
-          
           <CardBody>
-            <div className="h-80 w-full">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={mockTrendData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  data={trendData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis dataKey="month" tick={{ fill: textColor }} />
                   <YAxis tick={{ fill: textColor }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-                      color: textColor,
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                    }}
-                    labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
-                  />
-                  <Legend 
-                    wrapperStyle={{ 
-                      paddingTop: '10px',
-                      color: textColor
-                    }}
-                  />
-                  <Bar 
-                    dataKey="expenses" 
-                    name={t.expenses}
-                    fill={CHART_COLORS.EXPENSE}
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar 
-                    dataKey="income" 
-                    name={t.income}
-                    fill={CHART_COLORS.INCOME}
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="income" name={t.income} fill="#4CAF50" />
+                  <Bar dataKey="expenses" name={t.expenses} fill="#F44336" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardBody>
         </Card>
-      </section>
-      
-      {/* Categories and Trends Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Categories Section */}
-        <section>
-          <Card className="h-full">
-            <CardHeader>
-              <h2 className="text-xl font-semibold">{t.categories.title}</h2>
-            </CardHeader>
-            
-            <CardBody>
-              <div className="h-64 w-full mb-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={mockCategories}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {mockCategories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value) => [`$${value}`, t.expenses]}
-                      contentStyle={{ 
-                        backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-                        color: textColor,
-                        border: 'none',
-                        borderRadius: '0.5rem'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              
-              {/* Category legend */}
-              <div className="grid grid-cols-2 gap-2">
-                {mockCategories.map((category, index) => (
-                  <div key={index} className="flex items-center">
-                    <div 
-                      className="w-3 h-3 rounded-sm mr-2"
-                      style={{ backgroundColor: category.color }}
-                    ></div>
-                    <span className="text-sm text-foreground">{category.name}</span>
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-        </section>
         
-        {/* Trends Section */}
-        <section>
-          <Card className="h-full">
-            <CardHeader>
-              <h2 className="text-xl font-semibold">{t.trends.title}</h2>
-              <p className="text-sm text-muted-foreground">{t.trends.subtitle}</p>
-            </CardHeader>
-            
-            <CardBody>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={mockTrendData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                    <XAxis dataKey="month" tick={{ fill: textColor }} />
-                    <YAxis tick={{ fill: textColor }} />
-                    <Tooltip
-                      contentStyle={{ 
-                        backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-                        color: textColor,
-                        border: 'none',
-                        borderRadius: '0.5rem'
-                      }}
-                    />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="income" 
-                      name={t.income}
-                      stroke={CHART_COLORS.INCOME} 
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="expenses" 
-                      name={t.expenses}
-                      stroke={CHART_COLORS.EXPENSE} 
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardBody>
-          </Card>
-        </section>
+        {/* Expense Categories */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">{t.categories.title}</h2>
+          </CardHeader>
+          <CardBody>
+            <div className="h-[300px]">
+              {categoryData.length > 0 ? (
+                <div className="flex h-full">
+                  <ResponsiveContainer width="60%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        fill="#8884d8"
+                        paddingAngle={2}
+                        dataKey="value"
+                        label
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`$${value}`, '']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  
+                  <div className="w-[40%] flex flex-col justify-center">
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
+                      {categoryData.map((category, index) => (
+                        <div key={index} className="flex items-center">
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className="text-sm truncate mr-1">{category.name}</span>
+                          <span className="text-sm text-muted-foreground ml-auto">
+                            ${category.value.toFixed(0)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  {t.categories.noData}
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
       </div>
       
-      {/* AI Insights Section */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">{t.insights.title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {mockInsights.map((insight) => (
-            <motion.div
-              key={insight.id}
-              whileHover={{ y: -5 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Card className="h-full">
-                <CardBody>
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center mb-3">
-                      <div className={`
-                        w-10 h-10 rounded-full flex items-center justify-center mr-3
-                        ${insight.type === 'alert' ? 'bg-red-100 text-red-600' : 
-                          insight.type === 'opportunity' ? 'bg-blue-100 text-blue-600' : 
-                          'bg-green-100 text-green-600'}
-                        dark:${insight.type === 'alert' ? 'bg-red-900 text-red-300' : 
-                          insight.type === 'opportunity' ? 'bg-blue-900 text-blue-300' : 
-                          'bg-green-900 text-green-300'}
-                      `}>
-                        <insight.icon className="w-5 h-5" />
-                      </div>
-                      <h3 className="font-medium">{insight.title}</h3>
+      {/* Charts Row 2 */}
+      <div className="grid grid-cols-1 gap-8 mb-8">
+        {/* Financial Trends */}
+        <Card>
+          <CardHeader>
+            <div>
+              <h2 className="text-xl font-semibold">{t.trends.title}</h2>
+              <p className="text-sm text-muted-foreground">{t.trends.subtitle}</p>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={trendData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="month" tick={{ fill: textColor }} />
+                  <YAxis tick={{ fill: textColor }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="income" 
+                    name={t.income}
+                    stroke="#4CAF50" 
+                    activeDot={{ r: 8 }}
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="expenses" 
+                    name={t.expenses}
+                    stroke="#F44336"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+      
+      {/* AI Insights */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.insights.title}</h2>
+        </CardHeader>
+        <CardBody>
+          {aiRecommendations.loading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-10 h-10 border-t-4 border-primary-500 rounded-full animate-spin"></div>
+            </div>
+          ) : aiRecommendations.data && aiRecommendations.data.insights && aiRecommendations.data.insights.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {aiRecommendations.data.insights.map((insight) => (
+                <motion.div
+                  key={insight.id}
+                  className="bg-card rounded-lg p-4 border border-border shadow-sm hover:shadow-md transition-shadow"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-start mb-2">
+                    <div className={`p-2 rounded-full bg-primary/10 text-primary mr-3`}>
+                      <span className="text-xl">{insight.icon}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                    <div>
+                      <h3 className="font-medium">{insight.type}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {insight.message}
+                      </p>
+                    </div>
                   </div>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No AI insights available at this time.
+            </div>
+          )}
+          
+          {aiRecommendations.data && aiRecommendations.data.tips && aiRecommendations.data.tips.length > 0 && (
+            <div className="mt-6 bg-muted/30 p-4 rounded-lg">
+              <h3 className="font-medium mb-3">Financial Tips</h3>
+              <ul className="space-y-2">
+                {aiRecommendations.data.tips.map((tip, index) => (
+                  <li key={index} className="flex items-start">
+                    <FiCheckCircle className="text-success mr-2 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }; 
