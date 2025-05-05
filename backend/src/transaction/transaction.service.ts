@@ -21,7 +21,14 @@ import { Prisma, Transaction, $Enums } from '@prisma/client';
 export class TransactionService {
   constructor(private prisma: PrismaService) {}
 
-  private mapToDto = (transaction: Transaction): TransactionResponseDto => ({
+  private mapToDto = (
+    transaction: Transaction & {
+      category?: { name: string } | null;
+      account?: { name: string } | null;
+      fromAccount?: { name: string } | null;
+      toAccount?: { name: string } | null;
+    },
+  ): TransactionResponseDto => ({
     id: transaction.id,
     userId: transaction.userId,
     type: TransactionTypeEnum.parse(transaction.type),
@@ -37,6 +44,10 @@ export class TransactionService {
     contactPhone: transaction.contactPhone || null,
     createdAt: transaction.createdAt,
     debtStatus: transaction.debtStatus ?? undefined,
+    categoryName: transaction.category?.name || null,
+    accountName: transaction.account?.name || null,
+    fromAccountName: transaction.fromAccount?.name || null,
+    toAccountName: transaction.toAccount?.name || null,
   });
 
   async create(
@@ -358,9 +369,46 @@ export class TransactionService {
         orderBy: {
           date: 'desc', // Most recent first
         },
+        include: {
+          category: {
+            select: { name: true },
+          },
+          account: {
+            select: { name: true },
+          },
+        },
       });
 
-      return transactions.map(this.mapToDto);
+      // Map and handle fromAccount and toAccount separately since they're not direct relations
+      const enhancedTransactions = await Promise.all(
+        transactions.map(async (transaction) => {
+          // Get fromAccount name if exists
+          let fromAccount: { name: string } | null = null;
+          if (transaction.fromAccountId) {
+            fromAccount = await this.prisma.account.findUnique({
+              where: { id: transaction.fromAccountId },
+              select: { name: true },
+            });
+          }
+
+          // Get toAccount name if exists
+          let toAccount: { name: string } | null = null;
+          if (transaction.toAccountId) {
+            toAccount = await this.prisma.account.findUnique({
+              where: { id: transaction.toAccountId },
+              select: { name: true },
+            });
+          }
+
+          return {
+            ...transaction,
+            fromAccount,
+            toAccount,
+          };
+        }),
+      );
+
+      return enhancedTransactions.map(this.mapToDto);
     } catch (error) {
       console.error('Error finding transactions:', error);
       throw new InternalServerErrorException('Failed to retrieve transactions');
@@ -371,7 +419,12 @@ export class TransactionService {
     const transaction = await this.prisma.transaction.findUnique({
       where: { id },
       include: {
-        category: true,
+        category: {
+          select: { name: true },
+        },
+        account: {
+          select: { name: true },
+        },
       },
     });
 
@@ -384,7 +437,30 @@ export class TransactionService {
       );
     }
 
-    return this.mapToDto(transaction);
+    // Get fromAccount and toAccount names if they exist
+    let fromAccount: { name: string } | null = null;
+    if (transaction.fromAccountId) {
+      fromAccount = await this.prisma.account.findUnique({
+        where: { id: transaction.fromAccountId },
+        select: { name: true },
+      });
+    }
+
+    let toAccount: { name: string } | null = null;
+    if (transaction.toAccountId) {
+      toAccount = await this.prisma.account.findUnique({
+        where: { id: transaction.toAccountId },
+        select: { name: true },
+      });
+    }
+
+    const enhancedTransaction = {
+      ...transaction,
+      fromAccount,
+      toAccount,
+    };
+
+    return this.mapToDto(enhancedTransaction);
   }
 
   async update(
@@ -431,6 +507,14 @@ export class TransactionService {
         orderBy: {
           date: 'desc',
         },
+        include: {
+          category: {
+            select: { name: true },
+          },
+          account: {
+            select: { name: true },
+          },
+        },
       });
 
       console.log(`Found ${transactions.length} active debts`);
@@ -442,7 +526,36 @@ export class TransactionService {
         );
       }
 
-      return transactions.map(this.mapToDto);
+      // Map and handle fromAccount and toAccount separately if needed
+      const enhancedTransactions = await Promise.all(
+        transactions.map(async (transaction) => {
+          // Get fromAccount name if exists
+          let fromAccount: { name: string } | null = null;
+          if (transaction.fromAccountId) {
+            fromAccount = await this.prisma.account.findUnique({
+              where: { id: transaction.fromAccountId },
+              select: { name: true },
+            });
+          }
+
+          // Get toAccount name if exists
+          let toAccount: { name: string } | null = null;
+          if (transaction.toAccountId) {
+            toAccount = await this.prisma.account.findUnique({
+              where: { id: transaction.toAccountId },
+              select: { name: true },
+            });
+          }
+
+          return {
+            ...transaction,
+            fromAccount,
+            toAccount,
+          };
+        }),
+      );
+
+      return enhancedTransactions.map(this.mapToDto);
     } catch (error) {
       console.error('Error finding active debts:', error);
       throw new InternalServerErrorException(

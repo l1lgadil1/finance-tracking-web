@@ -115,6 +115,18 @@ The UI component system follows a modular, composable approach:
    - Zustand stores manage state
    - UI components render the interface
 
+3. **Real-time Updates**:
+   - Transaction creation/update/deletion flow:
+     1. UI form collects transaction data
+     2. Form submission triggers API call
+     3. Backend processes transaction
+     4. After successful operation, UI:
+        - Refreshes transaction list
+        - Updates financial statistics
+        - Closes relevant modals
+        - Resets UI state
+     5. User sees immediate updates without page reload
+
 ## Authentication Flow
 
 1. User submits credentials
@@ -132,6 +144,8 @@ The UI component system follows a modular, composable approach:
 4. **Render Props/Hooks Pattern** (Frontend): Shared logic via custom hooks
 5. **Feature Slice Pattern** (Frontend): Code organization by business domains
 6. **Component Composition** (Frontend): UI built from smaller, reusable components
+7. **Callback Pattern** (Frontend): onSuccess callbacks for post-operation UI updates
+8. **Observable Store Pattern** (Frontend): Zustand for centralized state management with real-time UI updates
 
 ## Technical Decisions
 - Comprehensive theme system with semantic color tokens and CSS variables.
@@ -142,9 +156,12 @@ The UI component system follows a modular, composable approach:
 - Recharts for data visualization.
 - All forms validated client-side and server-side.
 - Responsive/mobile-first layouts.
+- Real-time UI updates through post-operation refresh mechanisms.
 - Ongoing: Remove all mock data, replace with real API integration.
 
 ## UI Patterns
+
+### General UI Patterns
 - Semantic color tokens for consistent UI theming across components.
 - Accessibility-focused design with proper color contrast and focus states.
 - Card-based layouts for entity display.
@@ -157,6 +174,17 @@ The UI component system follows a modular, composable approach:
 - UI showcase for component reference and theme demonstration.
 - Financial data visualization with appropriate color coding by transaction type.
 - Transaction type indicators with consistent iconography.
+
+### Transaction UI Patterns
+- Minimalist card UI with reduced visual noise for better readability.
+- Smart action buttons that:
+  - On desktop: Appear on hover in a semi-transparent container
+  - On mobile: Show a single menu button to conserve space
+- Context-aware button positioning centered vertically for balance
+- Responsive spacing between transaction cards based on screen size
+- Visual grouping of transactions (by date, category, etc.)
+- Transaction status indicators with consistent color coding
+- Progressive disclosure of transaction details
 
 ## Theme System
 - CSS variables for dynamic theme switching.

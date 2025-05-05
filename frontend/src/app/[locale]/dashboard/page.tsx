@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { Locale } from '@/shared/lib/i18n';
-import { DashboardContainer } from '@/widgets/DashboardContainer';
+import { ModernDashboard } from '@/widgets/ModernDashboard';
 import { ActionButtons } from '@/widgets/action-buttons/ui/ActionButtons';
 
 export default function DashboardPage() {
@@ -11,7 +11,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <DashboardContainer locale={locale} />
+      <ModernDashboard locale={locale} />
       <ActionButtons locale={locale} />
     </>
   );

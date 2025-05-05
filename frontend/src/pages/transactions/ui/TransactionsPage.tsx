@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FiPlus, FiArrowLeft, FiSearch, FiSettings, FiX } from 'react-icons/fi';
 import { Card, CardBody } from '@/shared/ui/Card';
@@ -13,6 +13,9 @@ import { TransactionFilter } from '@/widgets/TransactionFilter';
 import { TransactionsList } from '@/widgets/TransactionsList';
 import { useTransactionStore } from '@/entities/transaction/model/transactionStore';
 import { Locale } from '@/shared/lib/i18n';
+import { TransactionModal } from '@/features/transaction/ui/TransactionModal';
+import { TransactionType } from '@/shared/constants/finance';
+import { Transaction } from '@/shared/api/types';
 import Link from 'next/link';
 
 interface TransactionsPageProps {
@@ -68,7 +71,6 @@ const translations = {
 };
 
 export function TransactionsPage({ locale }: TransactionsPageProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const t = translations[locale];
   
@@ -100,6 +102,9 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [defaultTransactionType, setDefaultTransactionType] = useState<TransactionType>(TransactionType.EXPENSE);
+  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
 
   // Initialize with account filter from URL if present
   useEffect(() => {
@@ -142,9 +147,11 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
   };
 
   // Handle edit transaction
-  const handleEditTransaction = (id: string) => {
-    // Redirect to edit page or open edit modal
-    router.push(`/${locale}/dashboard/transactions/edit/${id}`);
+  const handleEditTransaction = async (id: string) => {
+    setSelectedTransactionId(id);
+    await fetchTransactionById(id);
+    setTransactionToEdit(currentTransaction);
+    setIsTransactionModalOpen(true);
   };
 
   // Handle transaction deletion confirmation
@@ -157,6 +164,11 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
   const handleDeleteTransaction = async () => {
     if (selectedTransactionId) {
       await deleteTransaction(selectedTransactionId);
+      
+      // Refresh transaction list after successful deletion
+      fetchTransactions();
+      fetchStatistics(filters.startDate, filters.endDate);
+      
       setIsDeleteModalOpen(false);
       setSelectedTransactionId(null);
       
@@ -169,8 +181,11 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
 
   // Add new transaction
   const handleAddTransaction = () => {
-    // Redirect to add page or open add modal
-    router.push(`/${locale}/dashboard/transactions/new`);
+    // Reset any existing transaction to edit
+    setTransactionToEdit(null);
+    // Open transaction modal
+    setDefaultTransactionType(TransactionType.EXPENSE);
+    setIsTransactionModalOpen(true);
   };
 
   // Toggle display settings
@@ -190,10 +205,15 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
           </Link>
           <h1 className="text-2xl font-bold">{t.transactions}</h1>
         </div>
-        <Card>
+        <Card className="overflow-hidden border-red-200 dark:border-red-800">
           <CardBody>
-            <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
-              {error}
+            <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md flex items-center">
+              <div className="mr-3 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>{error}</div>
             </div>
           </CardBody>
         </Card>
@@ -208,30 +228,37 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center">
             <Link href={`/${locale}/dashboard`} className="mr-4">
-              <Button variant="ghost" size="sm" leftIcon={<FiArrowLeft />}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                leftIcon={<FiArrowLeft className="transition-transform group-hover:-translate-x-1" />}
+                className="group"
+              >
                 {t.backToDashboard}
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">{t.transactions}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.transactions}</h1>
           </div>
           
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
               size="sm" 
-              leftIcon={<FiSettings />}
+              leftIcon={<FiSettings className="group-hover:rotate-45 transition-transform duration-300" />}
               onClick={toggleSettings}
               aria-label={t.viewOptions}
+              className="group"
             >
-              {t.viewOptions}
+              <span className="hidden sm:inline">{t.viewOptions}</span>
             </Button>
             
             <Button 
               variant="primary" 
-              leftIcon={<FiPlus />}
+              leftIcon={<FiPlus className="group-hover:rotate-90 transition-transform duration-300" />}
               onClick={handleAddTransaction}
+              className="group"
             >
-              {t.addTransaction}
+              <span className="hidden sm:inline">{t.addTransaction}</span>
             </Button>
           </div>
         </div>
@@ -248,16 +275,17 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
               rightIcon={
                 searchTerm ? (
                   <FiX 
-                    className="cursor-pointer" 
+                    className="cursor-pointer hover:text-primary-500 transition-colors" 
                     onClick={() => setSearchTerm('')}
                   />
                 ) : undefined
               }
               fullWidth
+              className="transition-all duration-200 focus-within:shadow-md"
             />
           </div>
           
-          <div className="flex items-center gap-2 self-end">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <TransactionFilter 
               filters={filters}
               onFilterChange={setFilters}
@@ -274,14 +302,22 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 top-32 mt-2 w-56 bg-card shadow-lg rounded-lg border border-border z-10"
+                className="absolute right-4 sm:right-0 top-24 sm:top-32 mt-2 w-64 bg-card shadow-lg rounded-lg border border-border z-20"
               >
                 <div className="p-4">
-                  <h3 className="font-medium mb-3">{t.viewOptions}</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">{t.viewOptions}</h3>
+                    <button 
+                      onClick={toggleSettings}
+                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                    >
+                      <FiX size={18} />
+                    </button>
+                  </div>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <label htmlFor="viewMode" className="text-sm">
+                      <label htmlFor="viewMode" className="text-sm font-medium">
                         {displayMode === 'compact' ? t.compactView : t.detailedView}
                       </label>
                       <div className="relative inline-block w-10 align-middle select-none">
@@ -293,12 +329,12 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
                           className="sr-only"
                         />
                         <div className="block bg-gray-300 dark:bg-gray-600 w-10 h-6 rounded-full"></div>
-                        <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${displayMode === 'detailed' ? 'translate-x-4' : ''}`}></div>
+                        <div className={`absolute left-1 top-1 bg-white dark:bg-gray-200 w-4 h-4 rounded-full transition-transform transform ${displayMode === 'detailed' ? 'translate-x-4' : ''}`}></div>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <label htmlFor="showBalance" className="text-sm">{t.showBalance}</label>
+                      <label htmlFor="showBalance" className="text-sm font-medium">{t.showBalance}</label>
                       <div className="relative inline-block w-10 align-middle select-none">
                         <input
                           type="checkbox"
@@ -308,12 +344,12 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
                           className="sr-only"
                         />
                         <div className="block bg-gray-300 dark:bg-gray-600 w-10 h-6 rounded-full"></div>
-                        <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${showBalance ? 'translate-x-4' : ''}`}></div>
+                        <div className={`absolute left-1 top-1 bg-white dark:bg-gray-200 w-4 h-4 rounded-full transition-transform transform ${showBalance ? 'translate-x-4' : ''}`}></div>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <label htmlFor="groupByDate" className="text-sm">{t.groupByDate}</label>
+                      <label htmlFor="groupByDate" className="text-sm font-medium">{t.groupByDate}</label>
                       <div className="relative inline-block w-10 align-middle select-none">
                         <input
                           type="checkbox"
@@ -323,7 +359,7 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
                           className="sr-only"
                         />
                         <div className="block bg-gray-300 dark:bg-gray-600 w-10 h-6 rounded-full"></div>
-                        <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${groupByDate ? 'translate-x-4' : ''}`}></div>
+                        <div className={`absolute left-1 top-1 bg-white dark:bg-gray-200 w-4 h-4 rounded-full transition-transform transform ${groupByDate ? 'translate-x-4' : ''}`}></div>
                       </div>
                     </div>
                   </div>
@@ -338,35 +374,39 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
         <div className="lg:col-span-3">
           {/* Financial Summary */}
           {showBalance && (
-            <Card className="mb-6">
+            <Card className="mb-6 overflow-hidden transition-all duration-300 hover:shadow-md">
               <CardBody className="p-4">
                 <div className="flex flex-col lg:flex-row items-center justify-between">
-                  <div className="mb-4 lg:mb-0">
-                    <h3 className="font-medium text-lg mb-2">{t.summary}</h3>
-                    <div className="grid grid-cols-3 gap-6">
-                      <div>
-                        <p className="text-sm text-gray-500">{t.totalIncome}</p>
+                  <div className="w-full mb-4 lg:mb-0">
+                    <h3 className="font-medium text-lg mb-3">{t.summary}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t.totalIncome}</p>
                         <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                          +${(statistics.totalIncome / 100).toFixed(2)}
+                          +${(statistics.totalIncome).toFixed(2)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">{t.totalExpenses}</p>
+                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t.totalExpenses}</p>
                         <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                          -${(statistics.totalExpense / 100).toFixed(2)}
+                          -${(statistics.totalExpense).toFixed(2)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">{t.netBalance}</p>
-                        <p className={`text-lg font-bold ${statistics.balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          ${(statistics.balance / 100).toFixed(2)}
+                      <div className={`p-3 rounded-lg ${
+                        statistics.balance >= 0 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800' 
+                          : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800'
+                      }`}>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t.netBalance}</p>
+                        <p className={`text-lg font-bold ${statistics.balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          ${(statistics.balance).toFixed(2)}
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <Link href={`/${locale}/dashboard/analytics`} passHref>
-                    <Button variant="outline" size="sm">
+                  <Link href={`/${locale}/dashboard/analytics`} passHref className="lg:ml-4">
+                    <Button variant="outline" size="sm" className="whitespace-nowrap">
                       {t.viewAnalytics}
                     </Button>
                   </Link>
@@ -376,55 +416,61 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
           )}
           
           {/* Transactions List */}
-          <TransactionsList 
-            transactions={transactions}
-            onEdit={handleEditTransaction}
-            onDelete={handleConfirmDelete}
-            onView={handleViewTransaction}
-            displayMode={displayMode}
-            groupByDate={groupByDate}
-            isLoading={isLoading}
-            locale={locale}
-          />
+          <div className="bg-transparent">
+            <TransactionsList 
+              transactions={transactions}
+              onEdit={handleEditTransaction}
+              onDelete={handleConfirmDelete}
+              onView={handleViewTransaction}
+              displayMode={displayMode}
+              groupByDate={groupByDate}
+              isLoading={isLoading}
+              locale={locale}
+            />
+          </div>
         </div>
         
         <div className="lg:col-span-1">
           {/* Financial Summary Cards */}
-          <div className="space-y-4">
+          <div className="space-y-4 sticky top-6">
             <FinancialSummaryCard 
               title={t.totalIncome}
-              value={statistics.totalIncome / 100}
+              value={statistics.totalIncome}
               subtitle={filters.startDate ? new Date(filters.startDate).toLocaleDateString() : ''}
-              icon={<DollarSign size={20} />}
+              icon={<DollarSign size={20} className="text-green-500" />}
               change={{ value: 0, positive: true }}
+              className="transition-transform hover:-translate-y-1 duration-300"
             />
             
             <FinancialSummaryCard 
               title={t.totalExpenses}
-              value={statistics.totalExpense / 100}
+              value={statistics.totalExpense}
               subtitle={filters.endDate ? new Date(filters.endDate).toLocaleDateString() : ''}
-              icon={<ArrowUpDown size={20} />}
+              icon={<ArrowUpDown size={20} className="text-red-500" />}
               change={{ value: 0, positive: false }}
+              className="transition-transform hover:-translate-y-1 duration-300"
             />
             
             <FinancialSummaryCard 
               title={t.netBalance}
-              value={statistics.balance / 100}
+              value={statistics.balance}
               subtitle=""
-              icon={<TrendingUp size={20} />}
+              icon={<TrendingUp size={20} className={statistics.balance >= 0 ? "text-blue-500" : "text-amber-500"} />}
               change={{ value: 0, positive: statistics.balance >= 0 }}
+              className="transition-transform hover:-translate-y-1 duration-300"
             />
           </div>
         </div>
       </div>
       
       {/* Floating Add Button (Mobile) */}
-      <div className="fixed right-6 bottom-6 md:hidden">
+      <div className="fixed right-6 bottom-6 md:hidden z-10">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="bg-primary-500 text-white p-3 rounded-full shadow-lg"
+          className="bg-primary-500 hover:bg-primary-600 text-white p-3 rounded-full shadow-lg flex items-center justify-center transition-colors"
           onClick={handleAddTransaction}
+          aria-label={t.addTransaction}
         >
           <FiPlus className="w-6 h-6" />
         </motion.button>
@@ -432,6 +478,7 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
       
       {/* Transaction Detail Modal */}
       <Dialog
+        className='w-full max-w-2xl mx-auto'
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         title={t.transactionDetails}
@@ -443,8 +490,12 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
             amount={currentTransaction.amount}
             date={new Date(currentTransaction.date)}
             category={currentTransaction.categoryId || ''}
-            type={currentTransaction.type as 'income' | 'expense' | 'transfer' | 'debt'}
+            categoryName={currentTransaction.categoryName || ''}
+            type={currentTransaction.type as 'income' | 'expense' | 'transfer' | 'debt_give' | 'debt_take' | 'debt_repay'}
             account={currentTransaction.accountId || ''}
+            accountName={currentTransaction.accountName || ''}
+            fromAccountName={currentTransaction.fromAccountName || ''}
+            toAccountName={currentTransaction.toAccountName || ''}
             notes=""
             onEdit={() => {
               setIsDetailModalOpen(false);
@@ -465,9 +516,39 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
         title={t.confirmDelete}
         primaryActionText={t.delete}
         onPrimaryAction={handleDeleteTransaction}
+        className="max-w-md mx-auto"
       >
-        <p>{t.deleteConfirmationMessage}</p>
+        <div className="flex items-start space-x-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">{t.deleteConfirmationMessage}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {currentTransaction?.description && `"${currentTransaction.description}" - $${currentTransaction.amount.toFixed(2)}`}
+            </p>
+          </div>
+        </div>
       </Dialog>
+
+      {/* Add/Edit Transaction Modal */}
+      <TransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => {
+          setIsTransactionModalOpen(false);
+          setTransactionToEdit(null);
+        }}
+        onSuccess={() => {
+          // Refresh transaction list after successful creation/update
+          fetchTransactions();
+          fetchStatistics(filters.startDate, filters.endDate);
+        }}
+        locale={locale}
+        defaultTransactionType={defaultTransactionType}
+        transactionToEdit={transactionToEdit}
+      />
     </div>
   );
 } 

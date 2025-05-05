@@ -162,7 +162,7 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
   // Loading state
   if (isLoading && transactions.length === 0) {
     return (
-      <Card>
+      <Card className="border-0">
         <CardBody>
           <div className="flex justify-center items-center p-8">
             <div className="w-8 h-8 border-t-4 border-primary-500 rounded-full animate-spin mr-3"></div>
@@ -176,7 +176,7 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
   // Empty state
   if (transactions.length === 0) {
     return (
-      <Card>
+      <Card className="border-0">
         <CardBody>
           <div className="p-8 text-center">
             <p className="text-muted-foreground">{t.noTransactions}</p>
@@ -225,16 +225,16 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       {sortedGroups.slice(0, Math.ceil(visibleCount / 5)).map((group) => (
         <motion.div key={group.date.toISOString()} variants={itemVariants}>
-          <Card>
+          <Card className="mb-4 border-0 shadow-none bg-transparent">
             {groupByDate && (
-              <CardHeader className="flex justify-between items-center py-2 px-4 bg-background dark:bg-gray-800/80">
+              <CardHeader className="flex justify-between items-center py-2 px-4 bg-background">
                 <h3 className="font-semibold">{group.label}</h3>
                 <Badge variant="primary" size="sm">
                   {getTransactionText(group.transactions.length)}
@@ -242,24 +242,28 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
               </CardHeader>
             )}
             
-            <CardBody className="p-0 divide-y divide-gray-200 dark:divide-gray-700">
+            <CardBody className="p-0 divide-y divide-gray-100 dark:divide-gray-800">
               {group.transactions.map((transaction) => (
                 <div key={transaction.id} className="p-0">
-                  <div className="relative">
+                  <div className="relative group">
                     <TransactionCard
                       id={transaction.id}
                       description={transaction.description || 'Unnamed Transaction'}
                       amount={transaction.amount}
                       date={new Date(transaction.date)}
                       category={transaction.categoryId || ''}
-                      type={transaction.type as 'income' | 'expense' | 'transfer' | 'debt'}
+                      categoryName={transaction.categoryName || ''}
+                      type={transaction.type as 'income' | 'expense' | 'transfer' | 'debt_give' | 'debt_take' | 'debt_repay'}
                       account={transaction.accountId || ''}
+                      accountName={transaction.accountName || ''}
+                      fromAccountName={transaction.fromAccountName || ''}
+                      toAccountName={transaction.toAccountName || ''}
                       onClick={() => onView(transaction.id)}
-                      className={displayMode === 'compact' ? 'py-2' : ''}
+                      className={displayMode === 'compact' ? 'py-3' : 'py-4'}
                     />
                     
-                    {/* Actions overlay */}
-                    <div className="absolute top-2 right-2 flex space-x-1">
+                    {/* Actions overlay - Desktop */}
+                    <div className="absolute top-1/2 -translate-y-1/2 right-3 hidden sm:flex items-center gap-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -268,9 +272,9 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
                           onEdit(transaction.id);
                         }}
                         title={t.edit}
-                        className="h-7 w-7 p-0"
+                        className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                       >
-                        <FiEdit2 size={16} />
+                        <FiEdit2 size={16} className="text-gray-600 dark:text-gray-300" />
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -280,9 +284,9 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
                           onDelete(transaction.id);
                         }}
                         title={t.delete}
-                        className="h-7 w-7 p-0"
+                        className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                       >
-                        <FiTrash2 size={16} />
+                        <FiTrash2 size={16} className="text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors" />
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -292,9 +296,25 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
                           onView(transaction.id);
                         }}
                         title={t.view}
-                        className="h-7 w-7 p-0"
+                        className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                       >
-                        <FiMoreHorizontal size={16} />
+                        <FiMoreHorizontal size={16} className="text-gray-600 dark:text-gray-300" />
+                      </Button>
+                    </div>
+                    
+                    {/* Actions for mobile - Always visible */}
+                    <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:hidden flex items-center">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onView(transaction.id);
+                        }}
+                        title={t.view}
+                        className="h-8 w-8 p-0 rounded-full bg-white/90 dark:bg-gray-800/90 shadow-sm"
+                      >
+                        <FiMoreHorizontal size={18} className="text-gray-700 dark:text-gray-300" />
                       </Button>
                     </div>
                   </div>

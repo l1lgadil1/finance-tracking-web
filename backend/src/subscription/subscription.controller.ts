@@ -29,19 +29,16 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@ApiTags('Subscriptions (Mock)') // Indicate it's a mock
+@ApiTags('Subscriptions')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('subscriptions')
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
-  // Note: In a real scenario, creating/updating subscriptions would likely involve payment gateways
-  // and complex logic. These are simplified mock endpoints for MVP.
-
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a mock subscription' })
+  @ApiOperation({ summary: 'Create a subscription' })
   @ApiResponse({
     status: 201,
     description: 'Subscription created.',

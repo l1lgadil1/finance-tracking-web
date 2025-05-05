@@ -71,6 +71,7 @@ export const DashboardLayout: FC<DashboardLayoutProps> = ({ children, locale }) 
           username={user?.email?.split('@')[0] || 'User'} 
           email={user?.email || 'Loading...'}
           pageName={pageName}
+          locale={locale}
         >
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}

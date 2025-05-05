@@ -25,7 +25,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@ApiTags('AI Request Logs (Mock)')
+@ApiTags('AI Request Logs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('ai-request-logs') // Using kebab-case for endpoint

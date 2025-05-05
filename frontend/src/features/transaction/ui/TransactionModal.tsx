@@ -6,6 +6,7 @@ import { IoMdClose } from 'react-icons/io';
 import { useTransactionModal } from '../model/useTransactionModal';
 import { Account } from '@/entities/account/api/accountApi';
 import { Category } from '@/entities/category/api/categoryApi';
+import { Transaction } from '@/shared/api/types';
 import { TransactionType } from '@/shared/constants/finance';
 import { AccountQuickModal } from './AccountQuickModal';
 import { CategoryQuickModal } from './CategoryQuickModal';
@@ -16,6 +17,8 @@ interface TransactionModalProps {
   onClose: () => void;
   locale: Locale;
   defaultTransactionType?: TransactionType;
+  transactionToEdit?: Transaction | null;
+  onSuccess?: () => void;
 }
 
 interface TransactionFormData {
@@ -37,6 +40,7 @@ interface TransactionFormData {
 const translations = {
   en: {
     newTransaction: 'New Transaction',
+    editTransaction: 'Edit Transaction',
     amount: 'Amount',
     description: 'Description',
     descriptionPlaceholder: 'Enter transaction description',
@@ -48,6 +52,7 @@ const translations = {
     selectCategory: 'Select a category',
     date: 'Date',
     save: 'Save',
+    update: 'Update',
     cancel: 'Cancel',
     close: 'Close',
     contactName: 'Contact Name',
@@ -70,6 +75,7 @@ const translations = {
   },
   ru: {
     newTransaction: 'Новая транзакция',
+    editTransaction: 'Редактировать транзакцию',
     amount: 'Сумма',
     description: 'Описание',
     descriptionPlaceholder: 'Введите описание транзакции',
@@ -79,8 +85,9 @@ const translations = {
     toAccount: 'Счет зачисления',
     category: 'Категория',
     selectCategory: 'Выберите категорию',
-    date: 'Дата',
+    date: 'Date',
     save: 'Сохранить',
+    update: 'Обновить',
     cancel: 'Отмена',
     close: 'Закрыть',
     contactName: 'Имя контакта',
@@ -107,7 +114,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
   locale,
-  defaultTransactionType=TransactionType.EXPENSE
+  defaultTransactionType=TransactionType.EXPENSE,
+  transactionToEdit,
+  onSuccess
 }) => {
   const t = translations[locale] || translations.en;
   const [transactionType, setTransactionType] = useState<TransactionType>(defaultTransactionType);
@@ -130,6 +139,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     isCategoriesError,
     refetchCategories,
     submitTransaction,
+    updateTransaction,
     isSubmitting,
     isSubmitError,
     isSubmitSuccess,
@@ -144,6 +154,38 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     activeDebtsError,
     refetchActiveDebts,
   } = useTransactionModal();
+
+  // Load transaction data when editing
+  useEffect(() => {
+    if (transactionToEdit) {
+      // Set the transaction type
+      setTransactionType(transactionToEdit.type as TransactionType);
+      
+      // Set the form data using a type cast to avoid complex type issues
+      const transaction = transactionToEdit as Record<string, any>;
+      setFormData({
+        type: transaction.type as TransactionType,
+        amount: transaction.amount,
+        description: transaction.description || '',
+        categoryId: transaction.categoryId,
+        accountId: transaction.accountId,
+        fromAccountId: transaction.fromAccountId,
+        toAccountId: transaction.toAccountId,
+        date: new Date(transaction.date),
+        profileId: transaction.profileId || profileId,
+        contactName: transaction.contactName,
+        contactPhone: transaction.contactPhone,
+        relatedDebtId: transaction.relatedDebtId,
+      });
+    } else {
+      // Reset form when not editing
+      setTransactionType(defaultTransactionType);
+      setFormData({
+        type: defaultTransactionType,
+        date: new Date(),
+      });
+    }
+  }, [transactionToEdit, profileId, defaultTransactionType]);
 
   // Helper function to get category type name based on transaction type
   const getCategoryTypeForTransaction = (transactionType: TransactionType) => {
@@ -232,10 +274,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   useEffect(() => {
     if (isSubmitSuccess) {
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
       resetSubmit();
     }
-  }, [isSubmitSuccess, onClose, resetSubmit]);
+  }, [isSubmitSuccess, onClose, resetSubmit, onSuccess]);
 
   useEffect(() => {
     if(defaultTransactionType) {
@@ -294,8 +340,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
     
     // Create transaction data object
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: Record<string, any> = {
+    const data: Record<string, unknown> = {
       amount: formData.amount,
       date: (formData.date instanceof Date ? formData.date.toISOString() : formData.date) || new Date().toISOString(),
       description: formData.description ?? '',
@@ -358,8 +403,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
     
     // Submit transaction with the properly formed data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    submitTransaction(data as any);
+    if (transactionToEdit) {
+      // Update existing transaction
+      updateTransaction(transactionToEdit.id, data);
+    } else {
+      // Create new transaction
+      submitTransaction(data as any);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -378,8 +428,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     { value: TransactionType.DEBT_TAKE, label: t.types.debtTake, key: 'debt_take' },
     { value: TransactionType.DEBT_REPAY, label: t.types.debtRepay, key: 'debt_repay' },
   ];
-
-
 
   return (
     <AnimatePresence>
@@ -421,7 +469,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {t.newTransaction}
+                  {transactionToEdit ? t.editTransaction : t.newTransaction}
                 </h2>
                 <Button
                   variant="ghost"
@@ -744,7 +792,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     {t.cancel}
                   </Button>
                   <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
-                    {t.save}
+                    {transactionToEdit ? t.update : t.save}
                   </Button>
                 </div>
                 {isSubmitError && (

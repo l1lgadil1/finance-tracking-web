@@ -18,7 +18,7 @@ export function ThemeToggle() {
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={toggleTheme}
-      className="p-2 rounded-md bg-gray-200 dark:bg-gray-800"
+      className="p-2 rounded-md bg-muted hover:bg-muted-hover text-foreground"
       aria-label="Toggle theme"
     >
       {theme === 'dark' ? '🌙' : '☀️'}

@@ -40,4 +40,8 @@ export interface Transaction {
   contactName?: string;
   contactPhone?: string;
   debtStatus?: string;
+  categoryName?: string;
+  accountName?: string;
+  fromAccountName?: string;
+  toAccountName?: string;
 } 

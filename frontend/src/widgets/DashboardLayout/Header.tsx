@@ -1,13 +1,16 @@
 import { FC, ReactNode } from 'react';
+import { Locale } from '@/shared/lib/i18n';
+import { NotificationDropdown } from '@/entities/notification/ui/NotificationDropdown';
 
 interface HeaderProps {
   username: string;
   email: string;
   pageName: string;
+  locale: Locale;
   children?: ReactNode;
 }
 
-export const Header: FC<HeaderProps> = ({ username, email, pageName, children }) => {
+export const Header: FC<HeaderProps> = ({ username, email, pageName, locale, children }) => {
   return (
     <header 
       className="h-16 px-4 bg-card border-b border-border flex justify-between items-center transition-colors duration-200" 
@@ -20,6 +23,10 @@ export const Header: FC<HeaderProps> = ({ username, email, pageName, children })
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        {/* Notification dropdown */}
+        <NotificationDropdown locale={locale} />
+        
+        {/* User profile */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div 
             className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-100 dark:bg-primary-800 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold transition-colors duration-200"

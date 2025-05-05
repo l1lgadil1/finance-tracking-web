@@ -24,6 +24,7 @@
 - Improved dashboard layout with collapsible sidebar and content-first approach.
 - Enhanced mobile experience with optimized header and navigation patterns.
 - Implemented horizontal tab-based navigation for the Settings page on mobile.
+- Transactions page enhanced with real-time updates and improved UI/UX.
 
 ## What Works
 
@@ -35,7 +36,7 @@
 
 2. **Core Financial Features**
    - Account management (create, update, delete)
-   - Transaction tracking
+   - Transaction tracking with real-time updates after operations
    - Basic reporting and statistics
    - Category management
 
@@ -76,7 +77,17 @@
    - Mobile-optimized header with simplified user info
    - Mobile-first navigation patterns
 
-5. **Analytics**
+5. **Transactions Management**
+   - Full transactions list with sorting and grouping
+   - Immediate UI updates after add/edit/delete operations
+   - Minimalist card-based UI with improved readability
+   - Mobile-friendly action buttons with context-aware positioning
+   - Transaction categorization
+   - Transaction filtering
+   - Multiple transaction types (income, expense, transfer, debt)
+   - Consistent visual indicators for transaction types
+
+6. **Analytics**
    - Financial overview with key metrics (income, expenses, balance)
    - Income vs expenses bar chart
    - Expenses by category pie chart
@@ -86,7 +97,7 @@
    - AI-generated financial insights
    - Responsive design for all device sizes
 
-6. **Settings Interface**
+7. **Settings Interface**
    - Organized settings with logical categorization
    - Vertical sidebar navigation on desktop
    - Horizontal tabbed navigation on mobile with scroll controls
@@ -94,7 +105,7 @@
    - Smart scroll with navigation arrows for settings tabs
    - Proper active state indicators
 
-7. **Accessibility Features**
+8. **Accessibility Features**
    - ARIA attributes and landmarks
    - Semantic HTML structure
    - Keyboard navigation support
@@ -103,6 +114,17 @@
    - Color contrast improvements
    - Accessibility guidelines documentation
    - Chart components with accessibility considerations
+
+9. **Notification System**
+   - Header notification dropdown with unread badge counter
+   - Notifications dashboard section displaying recent alerts
+   - Date-based notification grouping with expandable/collapsible sections
+   - Different notification types (budget alerts, transaction alerts, goal milestones, etc.)
+   - Visual priority indicators (high, medium, low) with appropriate color coding
+   - Mark as read functionality (individual and batch)
+   - Real-time notification updates
+   - Mobile-responsive design
+   - Integration with settings page for preference management
 
 ## In Progress
 
@@ -158,6 +180,10 @@
 
 ## Recent Progress
 
+- Enhanced the Transactions page with minimalist UI styling and improved spacing
+- Improved transaction action buttons with better positioning and hover effects
+- Fixed real-time updates for transaction operations (add/edit/delete)
+- Implemented mobile-friendly action buttons with context-aware positioning
 - Enhanced UI consistency by fixing the height alignment between the header and sidebar
 - Made the burger menu button visible only on mobile devices for improved desktop layout
 - Streamlined the header on mobile by hiding username/email details and showing only avatar
@@ -175,4 +201,42 @@
 - Created detailed documentation for the Analytics page design and implementation
 - Fixed provider integration issues by properly wrapping the Analytics page with DashboardDataProvider
 - Ensured proper locale handling for internationalization support
-- Improved data visualization with tooltips, legends, and theme consistency 
+- Improved data visualization with tooltips, legends, and theme consistency
+- Implemented a comprehensive notification system for financial alerts and updates
+- Created a NotificationsSection component for the dashboard
+- Added a NotificationDropdown component to the header with badge indicator
+- Implemented notification grouping by date with collapsible sections
+- Added support for different notification types with appropriate icons
+- Created visual priority indicators for notifications (high, medium, low)
+- Integrated the notification system with the settings page
+- Added internationalization support for notification components
+- Implemented responsive design for mobile and desktop
+
+## Planned
+
+1. **Advanced Features**
+   - Budgeting tools
+   - Financial goal setting and tracking
+   - Investment tracking
+   - Bill reminders and recurring transactions
+   - Multi-currency support
+
+2. **Integration Features**
+   - Bank account sync (read-only)
+   - Import/export functionality
+   - API for third-party integrations
+
+3. **Collaboration Features**
+   - Shared accounts and transactions
+   - Family/group finance management
+   - Permissions and access control
+
+## Known Issues
+
+1. Error handling could be more user-friendly in some areas
+2. Need better loading states for async operations
+3. Some components outside the dashboard still need updated theme implementation
+4. Need more comprehensive unit and e2e test coverage 
+5. AI insights section still uses placeholder implementation
+6. Chart components need further accessibility enhancements 
+7. debt_give/debt_take are not distinguished in backend logic due to current Prisma schema; both are mapped to 'debt' 

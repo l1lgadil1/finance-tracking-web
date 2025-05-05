@@ -116,6 +116,10 @@ export class TransactionResponseDto extends createZodDto(
     userId: z.string().uuid(),
     createdAt: z.date(),
     debtStatus: z.string().optional(),
+    categoryName: z.string().optional().nullable(),
+    accountName: z.string().optional().nullable(),
+    fromAccountName: z.string().optional().nullable(),
+    toAccountName: z.string().optional().nullable(),
   }),
 ) {}
 

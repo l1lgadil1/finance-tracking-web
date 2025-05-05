@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, FC, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, FC, ReactNode, useRef } from 'react';
 import { accountApi, Account } from '@/entities/account/api/accountApi';
 import { transactionApi, Transaction } from '@/entities/transaction/api/transactionApi';
 import { goalApi, Goal } from '@/entities/goal/api/goalApi';
@@ -85,6 +85,9 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
   const [aiLoading, setAiLoading] = useState<boolean>(true);
   const [aiError, setAiError] = useState<string | null>(null);
   
+  // Ref to track if data has been loaded
+  const dataLoadedRef = useRef<boolean>(false);
+  
   // Get error messages for the current locale
   const errors = errorMessages[locale as keyof typeof errorMessages] || errorMessages.en;
   
@@ -118,6 +121,14 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
   
   // Fetch dashboard data from the API
   const fetchDashboardData = async () => {
+    // Skip if already loading to prevent double requests
+    if (isLoading && dataLoadedRef.current) {
+      return;
+    }
+    
+    // Reset the data loaded flag when explicitly refreshing
+    dataLoadedRef.current = true;
+    
     // Fetch accounts
     setAccountsLoading(true);
     setAccountsError(null);
@@ -183,7 +194,13 @@ export const DashboardDataProvider: FC<DashboardDataProviderProps> = ({ children
   
   // Fetch data on component mount and when locale changes
   useEffect(() => {
+    // Only fetch data if it hasn't been loaded yet or locale changes
     fetchDashboardData();
+    
+    // Clean up function to reset the data loaded flag when the component unmounts
+    return () => {
+      dataLoadedRef.current = false;
+    };
   }, [locale]);
   
   // Create the context value

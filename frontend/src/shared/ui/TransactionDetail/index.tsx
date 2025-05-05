@@ -1,8 +1,27 @@
 import { forwardRef } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardHeader, CardBody, CardFooter } from '../Card';
 import { Badge } from '../Badge';
 import { Button } from '../Button';
+import { 
+  FiEdit2, 
+  FiTrash2, 
+  FiCalendar, 
+  FiDollarSign, 
+  FiTag, 
+  FiCreditCard, 
+  FiArrowRight, 
+  FiArrowLeft, 
+  FiRotateCw, 
+  FiFileText, 
+  FiRepeat, 
+  FiArrowUp, 
+  FiArrowDown 
+} from 'react-icons/fi';
+import { Locale } from '@/shared/lib/i18n';
+import { useTransactionDetail, transactionDetailTranslations } from './useTransactionDetail';
 
+// Type definitions
 export interface TransactionDetailProps {
   /**
    * Transaction ID
@@ -27,17 +46,37 @@ export interface TransactionDetailProps {
   /**
    * Transaction category
    */
-  category: string;
+  category?: string;
+  
+  /**
+   * Transaction category name
+   */
+  categoryName?: string;
 
   /**
-   * Transaction type (income, expense, transfer, debt)
+   * Transaction type (income, expense, transfer, debt_give, debt_take, debt_repay)
    */
-  type: 'income' | 'expense' | 'transfer' | 'debt';
+  type: 'income' | 'expense' | 'transfer' | 'debt_give' | 'debt_take' | 'debt_repay';
 
   /**
    * Optional account name
    */
   account?: string;
+  
+  /**
+   * Optional account name from API
+   */
+  accountName?: string;
+  
+  /**
+   * Optional from account name for transfers
+   */
+  fromAccountName?: string;
+  
+  /**
+   * Optional to account name for transfers
+   */
+  toAccountName?: string;
 
   /**
    * Optional notes
@@ -63,7 +102,15 @@ export interface TransactionDetailProps {
    * Additional CSS class
    */
   className?: string;
+
+  /**
+   * Locale for internationalization
+   */
+  locale?: Locale;
 }
+
+// Export translations for external use
+export { transactionDetailTranslations };
 
 export const TransactionDetail = forwardRef<HTMLDivElement, TransactionDetailProps>(
   ({ 
@@ -73,160 +120,234 @@ export const TransactionDetail = forwardRef<HTMLDivElement, TransactionDetailPro
     amount, 
     date, 
     category, 
+    categoryName,
     type, 
     account, 
+    accountName,
+    fromAccountName,
+    toAccountName,
     notes,
     destinationAccount,
     onEdit,
     onDelete,
-    className = '' 
+    className = '',
+    locale = 'en'
   }, ref) => {
-    // Format amount to display format with currency symbol
-    const formatAmount = (amount: number) => {
-      const isNegative = amount < 0;
-      const absAmount = Math.abs(amount);
-      const formattedAmount = (absAmount / 100).toFixed(2);
-      return `${isNegative ? '-' : ''}$${formattedAmount}`;
-    };
+    // Use our custom hook to extract business logic
+    const {
+      t,
+      formattedAmount,
+      amountColorClass,
+      categoryBadgeVariant,
+      formattedDate,
+      transactionTypeLabel,
+      transactionIconBg,
+      borderTopColor,
+      animations
+    } = useTransactionDetail({
+      type,
+      amount,
+      date,
+      category: categoryName || category || '',
+      locale
+    });
 
-    // Get amount color class based on transaction type
-    const getAmountColorClass = (type: string) => {
+    // Get transaction type icon
+    const getTransactionTypeIcon = () => {
       switch (type) {
         case 'income':
-          return 'text-success';
+          return <FiArrowDown className="text-success" />;
         case 'expense':
-          return 'text-error';
+          return <FiArrowUp className="text-error" />;
         case 'transfer':
-          return 'text-primary-500';
-        case 'debt':
-          return 'text-warning';
+          return <FiRepeat className="text-primary-500" />;
+        case 'debt_give':
+          return <FiArrowRight className="text-warning" />;
+        case 'debt_take':
+          return <FiArrowLeft className="text-info" />;
+        case 'debt_repay':
+          return <FiRotateCw className="text-warning" />;
         default:
-          return 'text-foreground';
-      }
-    };
-
-    // Get badge variant based on category and type
-    const getCategoryBadgeVariant = (category: string, type: string) => {
-      if (type === 'income') return 'success';
-      if (type === 'expense') return 'error';
-      if (type === 'transfer') return 'primary';
-      if (type === 'debt') return 'warning';
-      
-      // Fallback to default mapping
-      switch (category.toLowerCase()) {
-        case 'food':
-        case 'groceries':
-        case 'dining':
-          return 'warning';
-        case 'income':
-        case 'salary':
-        case 'bonus':
-          return 'success';
-        case 'housing':
-        case 'rent':
-        case 'mortgage':
-          return 'error';
-        case 'transfer':
-          return 'primary';
-        case 'debt':
-        case 'loan':
-          return 'warning';
-        default:
-          return 'secondary';
-      }
-    };
-
-    // Format date to localized string
-    const formatDate = (date: Date) => {
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    };
-
-    // Format transaction type to display format
-    const formatTransactionType = (type: string) => {
-      switch (type) {
-        case 'income':
-          return 'Income';
-        case 'expense':
-          return 'Expense';
-        case 'transfer':
-          return 'Transfer';
-        case 'debt':
-          return 'Debt';
-        default:
-          return type.charAt(0).toUpperCase() + type.slice(1);
+          return <FiDollarSign />;
       }
     };
 
     return (
-      <Card ref={ref} className={className}>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-medium">{description}</h3>
-            <Badge variant={getCategoryBadgeVariant(category, type)}>{category}</Badge>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <div className="space-y-4">
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Description</span>
-              <span className="font-medium">{description}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Amount</span>
-              <span className={`font-bold ${getAmountColorClass(type)}`}>
-                {formatAmount(amount)}
-              </span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Date</span>
-              <span>{formatDate(date)}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Category</span>
-              <span>{category}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Type</span>
-              <span>{formatTransactionType(type)}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Account</span>
-              <span>{account || '-'}</span>
-            </div>
-            
-            {type === 'transfer' && destinationAccount && (
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Destination Account</span>
-                <span>{destinationAccount}</span>
+      <motion.div
+        ref={ref}
+        className={`${className} overflow-hidden`}
+        initial="hidden"
+        animate="visible"
+        variants={animations.cardVariants}
+      >
+        <Card className="overflow-hidden border-t-4 shadow-lg dark:shadow-gray-800/10" 
+          style={{ borderTopColor }}
+        >
+          {/* Header */}
+          <CardHeader className="relative p-6 bg-card dark:bg-gray-800/50">
+            <motion.div 
+              className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+              variants={animations.itemVariants}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${transactionIconBg}`}>
+                  <span className="text-xl">{getTransactionTypeIcon()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-semibold text-foreground truncate">{description}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge 
+                      variant={categoryBadgeVariant}
+                      className="mr-2"
+                    >
+                      {categoryName || category || transactionTypeLabel}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">{formattedDate}</span>
+                  </div>
+                </div>
               </div>
-            )}
-            
-            {notes && (
-              <div className="flex flex-col py-2">
-                <span className="text-muted-foreground mb-1">Notes</span>
-                <p className="text-foreground bg-card-hover p-3 rounded-md">{notes}</p>
+              <motion.div 
+                className={`text-2xl font-bold ${amountColorClass} md:text-right whitespace-nowrap`}
+                variants={animations.itemVariants}
+              >
+                {formattedAmount}
+              </motion.div>
+            </motion.div>
+          </CardHeader>
+
+          {/* Body */}
+          <CardBody className="p-0">
+            <div className="divide-y divide-border">
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0 p-6">
+                {/* Transaction Type */}
+                <motion.div 
+                  className="flex items-center py-3 gap-3"
+                  variants={animations.itemVariants}
+                >
+                  <div className="flex items-center gap-2 text-muted-foreground min-w-[120px]">
+                    <FiTag className="w-4 h-4" />
+                    <span>{t.type}</span>
+                  </div>
+                  <span className="font-medium">{transactionTypeLabel}</span>
+                </motion.div>
+
+                {/* Category */}
+                <motion.div 
+                  className="flex items-center py-3 gap-3"
+                  variants={animations.itemVariants}
+                >
+                  <div className="flex items-center gap-2 text-muted-foreground min-w-[120px]">
+                    <FiTag className="w-4 h-4" />
+                    <span>{t.category}</span>
+                  </div>
+                  <span className="font-medium">{categoryName || category || '-'}</span>
+                </motion.div>
+
+                {/* Date */}
+                <motion.div 
+                  className="flex items-center py-3 gap-3"
+                  variants={animations.itemVariants}
+                >
+                  <div className="flex items-center gap-2 text-muted-foreground min-w-[120px]">
+                    <FiCalendar className="w-4 h-4" />
+                    <span>{t.date}</span>
+                  </div>
+                  <span className="font-medium">{formattedDate}</span>
+                </motion.div>
+
+                {/* Account */}
+                {(type !== 'transfer' && (accountName || account)) && (
+                  <motion.div 
+                    className="flex items-center py-3 gap-3"
+                    variants={animations.itemVariants}
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-[120px]">
+                      <FiCreditCard className="w-4 h-4" />
+                      <span>{t.account}</span>
+                    </div>
+                    <span className="font-medium">{accountName || account}</span>
+                  </motion.div>
+                )}
+
+                {/* From Account (for transfers) */}
+                {(type === 'transfer' && fromAccountName) && (
+                  <motion.div 
+                    className="flex items-center py-3 gap-3"
+                    variants={animations.itemVariants}
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-[120px]">
+                      <FiArrowRight className="w-4 h-4" />
+                      <span>{t.fromAccount}</span>
+                    </div>
+                    <span className="font-medium">{fromAccountName}</span>
+                  </motion.div>
+                )}
+
+                {/* To Account (for transfers) */}
+                {(type === 'transfer' && (toAccountName || destinationAccount)) && (
+                  <motion.div 
+                    className="flex items-center py-3 gap-3"
+                    variants={animations.itemVariants}
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-[120px]">
+                      <FiArrowLeft className="w-4 h-4" />
+                      <span>{t.toAccount}</span>
+                    </div>
+                    <span className="font-medium">{toAccountName || destinationAccount}</span>
+                  </motion.div>
+                )}
               </div>
-            )}
-          </div>
-        </CardBody>
-        
-        {(onEdit || onDelete) && (
-          <CardFooter>
-            <div className="flex justify-end gap-2">
-              {onDelete && (
-                <Button variant="outline" onClick={onDelete}>Delete</Button>
+
+              {/* Notes Section */}
+              {(notes || true) && (
+                <motion.div 
+                  className="p-6 bg-card/50 dark:bg-gray-800/25"
+                  variants={animations.itemVariants}
+                >
+                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                    <FiFileText className="w-4 h-4" />
+                    <span>{t.notes}</span>
+                  </div>
+                  <p className="text-foreground whitespace-pre-line">
+                    {notes || <span className="text-muted-foreground italic">{t.noNotes}</span>}
+                  </p>
+                </motion.div>
               )}
+            </div>
+          </CardBody>
+
+          {/* Footer with actions */}
+          {(onEdit || onDelete) && (
+            <CardFooter className="p-4 flex justify-end gap-3 bg-card dark:bg-gray-800/50">
               {onEdit && (
-                <Button variant="primary" onClick={onEdit}>Edit</Button>
+                <motion.div variants={animations.buttonVariants}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={onEdit}
+                    leftIcon={<FiEdit2 />}
+                  >
+                    {t.edit}
+                  </Button>
+                </motion.div>
               )}
-            </div>
-          </CardFooter>
-        )}
-      </Card>
+              {onDelete && (
+                <motion.div variants={animations.buttonVariants}>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={onDelete}
+                    leftIcon={<FiTrash2 />}
+                  >
+                    {t.delete}
+                  </Button>
+                </motion.div>
+              )}
+            </CardFooter>
+          )}
+        </Card>
+      </motion.div>
     );
   }
 );

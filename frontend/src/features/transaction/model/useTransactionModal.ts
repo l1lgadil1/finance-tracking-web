@@ -95,8 +95,17 @@ export function useTransactionModal() {
   }, [fetchCategoryTypes]);
 
   // Transaction submit mutation
-  const mutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: transactionApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+
+  // Transaction update mutation
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: string, transaction: Record<string, unknown> }) => 
+      transactionApi.update(data.id, data.transaction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
@@ -105,6 +114,29 @@ export function useTransactionModal() {
   // State for quick add/edit modals (to be implemented)
   const [isAccountModalOpen, setAccountModalOpen] = useState(false);
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
+
+  // Function to handle transaction updating
+  const handleUpdateTransaction = (id: string, data: Record<string, unknown>) => {
+    return updateMutation.mutate({ id, transaction: data });
+  };
+
+  // Function to determine if we're submitting (either creating or updating)
+  const isSubmitting = createMutation.status === 'pending' || updateMutation.status === 'pending';
+  
+  // Function to determine if there was an error (either in creating or updating)
+  const isSubmitError = createMutation.status === 'error' || updateMutation.status === 'error';
+  
+  // Function to determine if the submission was successful (either creating or updating)
+  const isSubmitSuccess = createMutation.status === 'success' || updateMutation.status === 'success';
+  
+  // Get the error, prioritizing the most recent operation
+  const submitError = updateMutation.error || createMutation.error;
+  
+  // Reset both mutations
+  const resetSubmit = () => {
+    createMutation.reset();
+    updateMutation.reset();
+  };
 
   // Fetch active debts
   const {
@@ -139,12 +171,13 @@ export function useTransactionModal() {
     isCategoriesLoading,
     isCategoriesError,
     refetchCategories,
-    submitTransaction: mutation.mutate,
-    isSubmitting: mutation.status === 'pending',
-    isSubmitError: mutation.status === 'error',
-    isSubmitSuccess: mutation.status === 'success',
-    submitError: mutation.error,
-    resetSubmit: mutation.reset,
+    submitTransaction: createMutation.mutate,
+    updateTransaction: handleUpdateTransaction,
+    isSubmitting,
+    isSubmitError,
+    isSubmitSuccess,
+    submitError,
+    resetSubmit,
     isAccountModalOpen,
     setAccountModalOpen,
     isCategoryModalOpen,

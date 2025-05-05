@@ -38,7 +38,8 @@ const translations = {
     income: 'Income',
     expense: 'Expense',
     transfer: 'Transfer',
-    debt: 'Debt',
+    debtGive: 'Debt Given',
+    debtTake: 'Debt Taken',
     debtRepayment: 'Debt Repayment',
   },
   ru: {
@@ -58,7 +59,8 @@ const translations = {
     income: 'Доход',
     expense: 'Расход',
     transfer: 'Перевод',
-    debt: 'Долг',
+    debtGive: 'Выданный долг',
+    debtTake: 'Взятый долг',
     debtRepayment: 'Погашение долга',
   }
 };
@@ -205,7 +207,7 @@ export const TransactionFilter: React.FC<TransactionFilterProps> = ({
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-medium">{t.filter}</h3>
                 <FiX 
-                  className="cursor-pointer text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" 
+                  className="cursor-pointer text-muted-foreground hover:text-foreground" 
                   onClick={() => setIsOpen(false)}
                 />
               </div>
@@ -239,7 +241,7 @@ export const TransactionFilter: React.FC<TransactionFilterProps> = ({
                     {t.expense}
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-1">
+                <div className="grid grid-cols-2 gap-1 mb-3">
                   <Button
                     variant={tempFilters.type === 'transfer' ? 'primary' : 'outline'}
                     size="sm"
@@ -249,20 +251,30 @@ export const TransactionFilter: React.FC<TransactionFilterProps> = ({
                     {t.transfer}
                   </Button>
                   <Button
-                    variant={tempFilters.type === 'debt_give' || tempFilters.type === 'debt_take' ? 'primary' : 'outline'}
+                    variant={tempFilters.type === 'debt_repay' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => setTempFilters({...tempFilters, type: 'debt_repay'})}
+                    className="w-full"
+                  >
+                    {t.debtRepayment}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  <Button
+                    variant={tempFilters.type === 'debt_give' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => setTempFilters({...tempFilters, type: 'debt_give'})}
                     className="w-full"
                   >
-                    {t.debt}
+                    {t.debtGive}
                   </Button>
                   <Button
-                    variant={tempFilters.type === 'debt_repay' ? 'primary' : 'outline'}
+                    variant={tempFilters.type === 'debt_take' ? 'primary' : 'outline'}
                     size="sm"
-                    onClick={() => setTempFilters({...tempFilters, type: 'debt_repay'})}
-                    className="w-full text-xs"
+                    onClick={() => setTempFilters({...tempFilters, type: 'debt_take'})}
+                    className="w-full"
                   >
-                    {t.debtRepayment}
+                    {t.debtTake}
                   </Button>
                 </div>
               </div>
