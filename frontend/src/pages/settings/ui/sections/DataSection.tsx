@@ -1,18 +1,92 @@
 'use client';
 import React, { useState, useRef } from 'react';
-import { FiDownload, FiUpload, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
+import { FiDownload, FiUpload, FiAlertCircle, FiTrash2, FiRefreshCw } from 'react-icons/fi';
 import { Card, CardHeader, CardBody, CardFooter, Button, Dialog } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
+import { api } from '@/shared/api';
+import { ToastProvider } from '@/shared/ui/Toast/ToastProvider';
 
 interface DataSectionProps {
   locale: Locale;
 }
 
-export const DataSection = ({ locale }: DataSectionProps) => {
+// Simple toast interface that mimics the real useToast
+interface ToastHandler {
+  toast: (props: { title: string; description: string; variant?: string }) => void;
+}
+
+// Inner component that uses toast functionality
+const DataSectionContent = ({ locale }: DataSectionProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [manualProfileIdDialogOpen, setManualProfileIdDialogOpen] = useState(false);
+  const [manualProfileId, setManualProfileId] = useState('');
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [availableProfiles, setAvailableProfiles] = useState<Array<{id: string, name: string}>>([]);
+  
+  // Use locale for internationalized messages
+  const messages = {
+    successTitle: locale === 'ru' ? 'Успех' : 'Success',
+    successReset: locale === 'ru' ? 'Ваш профиль был сброшен до исходного состояния' : 'Your profile has been reset to default state',
+    errorTitle: locale === 'ru' ? 'Ошибка' : 'Error',
+    errorNoProfile: locale === 'ru' ? 'Нет активного профиля' : 'No active profile selected',
+    errorReset: locale === 'ru' ? 'Не удалось сбросить профиль. Пожалуйста, попробуйте снова.' : 'Failed to reset profile. Please try again.',
+  };
+  
+  // Simple fallback toast implementation using alert
+  const toast: ToastHandler['toast'] = (props) => {
+    console.log(`Toast: ${props.title} - ${props.description}`);
+    alert(`${props.title}: ${props.description}`);
+  };
+  
+  // Get active profile from localStorage since we may not have the store
+  const getActiveProfile = () => {
+    if (typeof window !== 'undefined') {
+      // Try different possible localStorage keys for profile
+      const possibleKeys = ['profile-storage', 'profileStore', 'app-storage'];
+      
+      for (const key of possibleKeys) {
+        const storedData = localStorage.getItem(key);
+        if (storedData) {
+          try {
+            const parsedData = JSON.parse(storedData);
+            // Check various possible paths where profile ID might be stored
+            const profile = 
+              parsedData.state?.activeProfile || 
+              parsedData.activeProfile ||
+              parsedData.state?.profile ||
+              null;
+              
+            if (profile && profile.id) {
+              console.log(`Found active profile in ${key}:`, profile);
+              return profile;
+            }
+          } catch (e) {
+            console.error(`Error parsing ${key} data:`, e);
+          }
+        }
+      }
+      
+      // As a last resort, check URL for profile ID
+      if (window.location.pathname.includes('/dashboard')) {
+        const urlParts = window.location.pathname.split('/');
+        const profileIndex = urlParts.findIndex(part => part === 'profile');
+        if (profileIndex !== -1 && profileIndex < urlParts.length - 1) {
+          const profileId = urlParts[profileIndex + 1];
+          if (profileId && profileId.length > 10) { // Simple validation for UUID length
+            console.log('Using profile ID from URL:', profileId);
+            return { id: profileId };
+          }
+        }
+      }
+    }
+    
+    return null;
+  };
 
   const handleExportData = (format: 'csv' | 'json') => {
     setIsExporting(true);
@@ -72,6 +146,138 @@ export const DataSection = ({ locale }: DataSectionProps) => {
     console.log('Account deletion requested');
     setIsDeleteDialogOpen(false);
   };
+
+  // Function to fetch profiles from API
+  const fetchProfiles = async () => {
+    if (availableProfiles.length > 0) return;
+    
+    setLoadingProfiles(true);
+    try {
+      // Use any type to avoid type issues for now
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response: any = await api.get('/profiles');
+      
+      if (response && response.data && Array.isArray(response.data)) {
+        // Now we know data is an array, map it to our expected format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const profiles = response.data.map((profile: any) => ({
+          id: profile.id,
+          name: profile.name || `Profile ${profile.id.slice(0, 8)}`
+        }));
+        
+        setAvailableProfiles(profiles);
+        // If there's only one profile, select it automatically
+        if (profiles.length === 1) {
+          setManualProfileId(profiles[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    } finally {
+      setLoadingProfiles(false);
+    }
+  };
+  
+  // Modify handleResetProfile to also fetch profiles when showing the manual dialog
+  const handleResetProfile = async () => {
+    const activeProfile = getActiveProfile();
+    
+    if (!activeProfile) {
+      // Show dialog to enter profile ID manually
+      setManualProfileIdDialogOpen(true);
+      // Try to fetch available profiles
+      fetchProfiles();
+      return;
+    }
+
+    proceedWithProfileReset(activeProfile);
+  };
+  
+  const proceedWithProfileReset = async (profile: { id: string }) => {
+    setIsResetting(true);
+    try {
+      console.log('Resetting profile with ID:', profile.id);
+      await api.post(`/profiles/${profile.id}/reset`);
+      toast({
+        title: messages.successTitle,
+        description: messages.successReset,
+        variant: "success",
+      });
+      
+      // Force refresh the dashboard data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error resetting profile:', error);
+      toast({
+        title: messages.errorTitle,
+        description: messages.errorReset,
+        variant: "error",
+      });
+    } finally {
+      setIsResetting(false);
+      setIsResetDialogOpen(false);
+    }
+  };
+  
+  const handleManualProfileSubmit = () => {
+    if (manualProfileId.trim()) {
+      setManualProfileIdDialogOpen(false);
+      proceedWithProfileReset({ id: manualProfileId.trim() });
+    } else {
+      toast({
+        title: messages.errorTitle,
+        description: messages.errorNoProfile,
+        variant: "error",
+      });
+    }
+  };
+
+  // Manual Profile ID Dialog
+  const renderManualProfileDialog = () => (
+    <Dialog
+      isOpen={manualProfileIdDialogOpen}
+      onClose={() => setManualProfileIdDialogOpen(false)}
+      title={loadingProfiles ? "Loading Profiles..." : "Select Profile"}
+      primaryActionText="Reset Selected Profile"
+      onPrimaryAction={handleManualProfileSubmit}
+      size="md"
+    >
+      {loadingProfiles ? (
+        <div className="text-center py-4">Loading available profiles...</div>
+      ) : availableProfiles.length > 0 ? (
+        <div className="space-y-4">
+          <p>Select a profile to reset:</p>
+          <select
+            value={manualProfileId}
+            onChange={(e) => setManualProfileId(e.target.value)}
+            className="w-full p-3 border border-border rounded-md bg-card"
+          >
+            <option value="" disabled>-- Select a profile --</option>
+            {availableProfiles.map(profile => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name} ({profile.id.slice(0, 8)}...)
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p>No profiles found or failed to load profiles. Please enter the profile ID manually:</p>
+          <input
+            type="text"
+            value={manualProfileId}
+            onChange={(e) => setManualProfileId(e.target.value)}
+            className="w-full p-2 border border-border rounded-md"
+            placeholder="Enter profile ID..."
+          />
+        </div>
+      )}
+
+      <div className="mt-4 text-xs text-muted-foreground">
+        <p>Resetting a profile will delete all transactions, custom categories, and reset account balances.</p>
+      </div>
+    </Dialog>
+  );
 
   return (
     <div className="space-y-8" suppressHydrationWarning>
@@ -166,6 +372,35 @@ export const DataSection = ({ locale }: DataSectionProps) => {
         )}
       </Card>
 
+      {/* Reset Profile */}
+      <Card className="border-warning/30">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-warning">Reset Profile</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="p-4 bg-warning/10 rounded-md border border-warning/30 mb-6">
+            <div className="flex items-start">
+              <FiAlertCircle className="text-warning mt-0.5 mr-2 flex-shrink-0" />
+              <div>
+                <h3 className="font-medium text-warning">Warning</h3>
+                <p className="text-sm mt-1">
+                  Resetting your profile will delete all your transactions, custom categories, and reset your account balances to zero. Default categories will be recreated. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <Button
+            variant="outline"
+            leftIcon={<FiRefreshCw className="text-warning" />}
+            className="border-warning/50 text-warning hover:bg-warning/10"
+            onClick={() => setIsResetDialogOpen(true)}
+          >
+            Reset my profile
+          </Button>
+        </CardBody>
+      </Card>
+
       {/* Account Deletion */}
       <Card className="border-error/30">
         <CardHeader>
@@ -195,6 +430,26 @@ export const DataSection = ({ locale }: DataSectionProps) => {
         </CardBody>
       </Card>
 
+      {/* Reset Profile Confirmation Dialog */}
+      <Dialog
+        isOpen={isResetDialogOpen}
+        onClose={() => setIsResetDialogOpen(false)}
+        title="Reset Profile"
+        primaryActionText="Yes, reset my profile"
+        onPrimaryAction={handleResetProfile}
+        isPrimaryActionLoading={isResetting}
+        size="md"
+      >
+        <p>Are you sure you want to reset your profile? This will:</p>
+        <ul className="list-disc pl-6 my-4 space-y-1">
+          <li>Delete all your transactions</li>
+          <li>Delete all custom categories</li>
+          <li>Reset all account balances to zero</li>
+          <li>Recreate default categories</li>
+        </ul>
+        <p className="font-medium">This action cannot be undone.</p>
+      </Dialog>
+
       {/* Deletion Confirmation Dialog */}
       <Dialog
         isOpen={isDeleteDialogOpen}
@@ -206,6 +461,18 @@ export const DataSection = ({ locale }: DataSectionProps) => {
       >
         <p>Are you sure you want to delete your account? This action cannot be undone.</p>
       </Dialog>
+
+      {/* Manual Profile ID Dialog */}
+      {renderManualProfileDialog()}
     </div>
+  );
+};
+
+// Main component that wraps the content with ToastProvider
+export const DataSection = ({ locale }: DataSectionProps) => {
+  return (
+    <ToastProvider>
+      <DataSectionContent locale={locale} />
+    </ToastProvider>
   );
 }; 

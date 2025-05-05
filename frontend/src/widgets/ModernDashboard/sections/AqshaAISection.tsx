@@ -1,10 +1,12 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardHeader, CardBody } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
 import { useDashboardData } from '@/widgets/DashboardContainer/providers/DashboardDataProvider';
-import { BrainCircuit, ArrowRight, TrendingUp, ArrowDownRight, PiggyBank } from 'lucide-react';
+import { BrainCircuit, ArrowRight, TrendingUp, ArrowDownRight, PiggyBank, MessageCircle } from 'lucide-react';
+import { AIAssistantModal } from '@/features/ai-assistant/ui/AIAssistantModal';
+import { aiAssistantApi } from '@/entities/ai/api/aiAssistantApi';
 
 const aiTranslations = {
   en: {
@@ -15,11 +17,13 @@ const aiTranslations = {
     noInsights: 'No insights available',
     tryAgain: 'Try Again',
     seeTips: 'See All Tips',
+    openAssistant: 'Ask Aqsha AI',
     basedOn: 'Based on your recent activity',
     savingTip: 'Saving Opportunity',
     spendingAlert: 'Spending Alert',
     budgetTip: 'Budget Tip',
-    investmentTip: 'Investment Tip'
+    investmentTip: 'Investment Tip',
+    refreshing: 'Refreshing insights...'
   },
   ru: {
     aqshaAI: 'Aqsha ИИ',
@@ -29,11 +33,13 @@ const aiTranslations = {
     noInsights: 'Нет доступных идей',
     tryAgain: 'Попробовать снова',
     seeTips: 'Все советы',
+    openAssistant: 'Спросить Aqsha ИИ',
     basedOn: 'На основе вашей недавней активности',
     savingTip: 'Возможность сбережения',
     spendingAlert: 'Предупреждение о расходах',
     budgetTip: 'Совет по бюджету',
-    investmentTip: 'Совет по инвестициям'
+    investmentTip: 'Совет по инвестициям',
+    refreshing: 'Обновление идей...'
   }
 };
 
@@ -49,10 +55,33 @@ interface AqshaAISectionProps {
 
 export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
   const t = aiTranslations[locale] || aiTranslations.en;
-  const { aiRecommendations, isLoading, hasErrors } = useDashboardData();
+  const { aiRecommendations, isLoading, hasErrors, refresh } = useDashboardData();
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Function to generate fresh AI insights
+  const handleRefreshInsights = async () => {
+    try {
+      setIsRefreshing(true);
+      // Get spending analysis for the last 30 days
+      const endDate = new Date().toISOString();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
+      // Get spending analysis 
+      await aiAssistantApi.analyzeSpending(startDate.toISOString(), endDate);
+      
+      // Refresh dashboard data
+      refresh();
+    } catch (error) {
+      console.error('Error refreshing insights:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   // Loading state
-  if (isLoading) {
+  if (isLoading || isRefreshing) {
     return (
       <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
         <CardHeader>
@@ -64,7 +93,7 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
         <CardBody>
           <div className="flex justify-center items-center p-8">
             <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
-            <span className="sr-only">{t.loading}</span>
+            <span className="sr-only">{isRefreshing ? t.refreshing : t.loading}</span>
           </div>
         </CardBody>
       </Card>
@@ -85,7 +114,11 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
           <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
             {aiRecommendations.error || t.error}
           </div>
-          <Button variant="outline" className="mt-3 w-full">
+          <Button 
+            variant="outline" 
+            className="mt-3 w-full"
+            onClick={handleRefreshInsights}
+          >
             {t.tryAgain}
           </Button>
         </CardBody>
@@ -108,7 +141,12 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
             <BrainCircuit className="text-primary-600 dark:text-primary-400" />
           </div>
           <p className="text-muted-foreground mb-4">{t.noInsights}</p>
-          <Button variant="outline">{t.tryAgain}</Button>
+          <Button 
+            variant="outline"
+            onClick={handleRefreshInsights}
+          >
+            {t.tryAgain}
+          </Button>
         </CardBody>
       </Card>
     );
@@ -148,68 +186,90 @@ export const AqshaAISection: FC<AqshaAISectionProps> = ({ locale }) => {
   };
   
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <BrainCircuit className="text-primary-500" size={20} />
-          <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">{t.basedOn}</p>
-      </CardHeader>
-      <CardBody className="space-y-3">
-        {(aiRecommendations.data.insights || []).slice(0, 3).map((insight, index) => {
-          if (!insight) return null;
-          
-          // Get insight properties safely with TypeScript type checking
-          const insightType = insight.type || '';
-          const insightText = insight.message || ''; 
-          
-          // These properties might not exist in the standard AIInsight type
-          // Use type assertion with our extended interface
-          const extendedInsight = insight as ExtendedAIInsight;
-          const description = extendedInsight.description;
-          const amount = extendedInsight.amount;
-          
-          // Use additional properties if available, otherwise fallback
-          const displayText = insightText || description || '';
-          const savingAmount = typeof amount === 'number' ? amount : 0;
-          
-          return (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.02, x: 5 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="flex items-start gap-3 p-3 bg-card-hover rounded-lg cursor-pointer"
-            >
-              <div className={`p-2 rounded-full ${getInsightClass(insightType)}`}>
-                {getInsightIcon(insightType)}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {getInsightText(insightType)}
-                  </p>
-                  {savingAmount > 0 && (
-                    <span className="text-xs font-semibold text-green-600">
-                      +${savingAmount.toFixed(2)}
-                    </span>
-                  )}
+    <>
+      <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BrainCircuit className="text-primary-500" size={20} />
+            <h2 className="text-xl font-semibold">{t.aqshaAI}</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">{t.basedOn}</p>
+        </CardHeader>
+        <CardBody className="space-y-3">
+          {(aiRecommendations.data.insights || []).slice(0, 3).map((insight, index) => {
+            if (!insight) return null;
+            
+            // Get insight properties safely with TypeScript type checking
+            const insightType = insight.type || '';
+            const insightText = insight.message || ''; 
+            
+            // These properties might not exist in the standard AIInsight type
+            // Use type assertion with our extended interface
+            const extendedInsight = insight as ExtendedAIInsight;
+            const description = extendedInsight.description;
+            const amount = extendedInsight.amount;
+            
+            // Use additional properties if available, otherwise fallback
+            const displayText = insightText || description || '';
+            const savingAmount = typeof amount === 'number' ? amount : 0;
+            
+            return (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.02, x: 5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className="flex items-start gap-3 p-3 bg-card-hover rounded-lg cursor-pointer"
+              >
+                <div className={`p-2 rounded-full ${getInsightClass(insightType)}`}>
+                  {getInsightIcon(insightType)}
                 </div>
-                <p className="text-sm mt-1">{displayText}</p>
-              </div>
-            </motion.div>
-          );
-        })}
-        
-        <Button 
-          variant="ghost" 
-          className="w-full flex items-center justify-center gap-1 mt-2" 
-          size="sm"
-        >
-          {t.seeTips}
-          <ArrowRight size={14} />
-        </Button>
-      </CardBody>
-    </Card>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {getInsightText(insightType)}
+                    </p>
+                    {savingAmount > 0 && (
+                      <span className="text-xs font-semibold text-green-600">
+                        +${savingAmount.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm mt-1">{displayText}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+          
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              variant="outline" 
+              className="flex items-center justify-center gap-1" 
+              size="sm"
+              onClick={() => handleRefreshInsights()}
+            >
+              {t.seeTips}
+              <ArrowRight size={14} />
+            </Button>
+            
+            <Button 
+              variant="primary" 
+              className="flex items-center justify-center gap-1" 
+              size="sm"
+              onClick={() => setIsAssistantOpen(true)}
+            >
+              {t.openAssistant}
+              <MessageCircle size={14} />
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+      
+      {/* AI Assistant Modal */}
+      <AIAssistantModal 
+        isOpen={isAssistantOpen} 
+        onClose={() => setIsAssistantOpen(false)} 
+        locale={locale}
+      />
+    </>
   );
 }; 

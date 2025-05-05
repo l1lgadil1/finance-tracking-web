@@ -70,8 +70,22 @@ export async function request<T>(
       return {} as T;
     }
     
-    const data = await response.json();
-    return data;
+    // Check if response has content before trying to parse it
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        const data = await response.json();
+        return data;
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        // Return empty object for JSON parse errors
+        return {} as T;
+      }
+    } else {
+      // For non-JSON responses, just return an empty object
+      console.warn(`Response is not JSON (Content-Type: ${contentType})`);
+      return {} as T;
+    }
   } catch (error) {
     throw error;
   }

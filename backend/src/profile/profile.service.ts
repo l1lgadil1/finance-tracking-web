@@ -63,4 +63,136 @@ export class ProfileService {
       where: { id },
     });
   }
+
+  /**
+   * Reset a profile to initial state
+   * This deletes all transactions, user categories, and resets accounts to default
+   */
+  async resetProfile(userId: string, profileId: string): Promise<Profile> {
+    // Verify the profile exists and belongs to the user
+    const profile = await this.findOne(userId, profileId);
+
+    // Use a transaction to ensure all operations are atomic
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Delete all transactions for this profile
+      await tx.transaction.deleteMany({
+        where: {
+          profileId: profileId,
+          userId: userId,
+        },
+      });
+
+      // 2. Delete all custom categories (non-system categories)
+      await tx.category.deleteMany({
+        where: {
+          userId: userId,
+          categoryType: {
+            isSystem: false,
+          },
+        },
+      });
+
+      // 3. Reset accounts to default state (keep accounts but set balance to 0)
+      await tx.account.updateMany({
+        where: { userId: userId },
+        data: { balance: 0 },
+      });
+
+      // 4. Create default categories
+      // Get system category types
+      const incomeType = await tx.categoryType.findFirst({
+        where: {
+          isSystem: true,
+          name: 'Income',
+        },
+      });
+
+      const expenseType = await tx.categoryType.findFirst({
+        where: {
+          isSystem: true,
+          name: 'Expense',
+        },
+      });
+
+      // Create default income categories
+      if (incomeType) {
+        await tx.category.createMany({
+          data: [
+            {
+              name: 'Salary',
+              icon: 'money-bill',
+              userId: userId,
+              categoryTypeId: incomeType.id,
+            },
+            {
+              name: 'Freelance',
+              icon: 'laptop',
+              userId: userId,
+              categoryTypeId: incomeType.id,
+            },
+            {
+              name: 'Investments',
+              icon: 'chart-line',
+              userId: userId,
+              categoryTypeId: incomeType.id,
+            },
+            {
+              name: 'Gifts',
+              icon: 'gift',
+              userId: userId,
+              categoryTypeId: incomeType.id,
+            },
+          ],
+          skipDuplicates: true,
+        });
+      }
+
+      // Create default expense categories
+      if (expenseType) {
+        await tx.category.createMany({
+          data: [
+            {
+              name: 'Food',
+              icon: 'utensils',
+              userId: userId,
+              categoryTypeId: expenseType.id,
+            },
+            {
+              name: 'Transport',
+              icon: 'car',
+              userId: userId,
+              categoryTypeId: expenseType.id,
+            },
+            {
+              name: 'Shopping',
+              icon: 'shopping-bag',
+              userId: userId,
+              categoryTypeId: expenseType.id,
+            },
+            {
+              name: 'Bills',
+              icon: 'file-invoice',
+              userId: userId,
+              categoryTypeId: expenseType.id,
+            },
+            {
+              name: 'Entertainment',
+              icon: 'film',
+              userId: userId,
+              categoryTypeId: expenseType.id,
+            },
+            {
+              name: 'Health',
+              icon: 'medkit',
+              userId: userId,
+              categoryTypeId: expenseType.id,
+            },
+          ],
+          skipDuplicates: true,
+        });
+      }
+
+      return profile;
+    });
+  }
 }

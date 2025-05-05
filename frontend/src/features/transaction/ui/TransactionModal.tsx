@@ -19,6 +19,7 @@ interface TransactionModalProps {
   defaultTransactionType?: TransactionType;
   transactionToEdit?: Transaction | null;
   onSuccess?: () => void;
+  selectedFromAccountId?: string | null;
 }
 
 interface TransactionFormData {
@@ -116,7 +117,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   locale,
   defaultTransactionType=TransactionType.EXPENSE,
   transactionToEdit,
-  onSuccess
+  onSuccess,
+  selectedFromAccountId
 }) => {
   const t = translations[locale] || translations.en;
   const [transactionType, setTransactionType] = useState<TransactionType>(defaultTransactionType);
@@ -162,17 +164,31 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTransactionType(transactionToEdit.type as TransactionType);
       
       // Set the form data using a type cast to avoid complex type issues
-      const transaction = transactionToEdit as Record<string, any>;
+      const transaction = transactionToEdit as unknown as {
+        type?: TransactionType;
+        amount?: number;
+        description?: string;
+        categoryId?: string;
+        accountId?: string;
+        fromAccountId?: string;
+        toAccountId?: string;
+        date?: string | Date;
+        profileId?: string;
+        contactName?: string;
+        contactPhone?: string;
+        relatedDebtId?: string;
+      };
+      
       setFormData({
-        type: transaction.type as TransactionType,
+        type: transaction.type || TransactionType.EXPENSE,
         amount: transaction.amount,
         description: transaction.description || '',
         categoryId: transaction.categoryId,
         accountId: transaction.accountId,
         fromAccountId: transaction.fromAccountId,
         toAccountId: transaction.toAccountId,
-        date: new Date(transaction.date),
-        profileId: transaction.profileId || profileId,
+        date: transaction.date ? new Date(transaction.date) : new Date(),
+        profileId: transaction.profileId || profileId || '',
         contactName: transaction.contactName,
         contactPhone: transaction.contactPhone,
         relatedDebtId: transaction.relatedDebtId,
@@ -186,6 +202,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       });
     }
   }, [transactionToEdit, profileId, defaultTransactionType]);
+
+  // Add effect to set fromAccountId when opening for transfer
+  useEffect(() => {
+    if (isOpen && selectedFromAccountId && defaultTransactionType === TransactionType.TRANSFER) {
+      setFormData(prev => ({
+        ...prev,
+        fromAccountId: selectedFromAccountId,
+        type: TransactionType.TRANSFER
+      }));
+    }
+  }, [isOpen, selectedFromAccountId, defaultTransactionType]);
 
   // Helper function to get category type name based on transaction type
   const getCategoryTypeForTransaction = (transactionType: TransactionType) => {
@@ -408,7 +435,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       updateTransaction(transactionToEdit.id, data);
     } else {
       // Create new transaction
-      submitTransaction(data as any);
+      // Type assertion with the expected type from the API
+      type TransactionInput = Omit<Transaction, "id" | "category" | "createdAt">;
+      submitTransaction(data as unknown as TransactionInput);
     }
   };
 

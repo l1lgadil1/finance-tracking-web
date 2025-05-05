@@ -131,4 +131,27 @@ export class ProfileController {
     // Return void for 204 No Content
     await this.profileService.remove(userId, id);
   }
+
+  @Post(':id/reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset a profile to default data' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile reset successfully.',
+    type: ProfileResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Profile not found' })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Profile ID',
+  })
+  async resetProfile(
+    @CurrentUser() userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ProfileResponseDto> {
+    return this.profileService.resetProfile(userId, id);
+  }
 }

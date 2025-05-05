@@ -15,6 +15,7 @@ import { AiRequestLogModule } from './ai-request-log/ai-request-log.module';
 import { AiRecommendationsModule } from './ai-recommendations/ai-recommendations.module';
 import { AccountTypeModule } from './account-type/account-type.module';
 import { CategoryTypeModule } from './category-type/category-type.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CategoryTypeModule } from './category-type/category-type.module';
     AiRecommendationsModule,
     AccountTypeModule,
     CategoryTypeModule,
+    AiAssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

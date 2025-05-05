@@ -47,6 +47,7 @@ const translations = {
     errorAccounts: 'Error loading accounts',
     noAccounts: 'No accounts found. Add your first account to get started.',
     settings: 'Settings',
+    viewDetails: 'View Details',
   },
   ru: {
     accounts: 'Счета',
@@ -75,6 +76,7 @@ const translations = {
     errorAccounts: 'Ошибка загрузки счетов',
     noAccounts: 'Счета не найдены. Добавьте первый счет, чтобы начать.',
     settings: 'Настройки',
+    viewDetails: 'Просмотр деталей',
   }
 };
 
@@ -427,6 +429,17 @@ function AccountsPageContent() {
                             >
                               <FiEdit2 />
                             </Button>
+                            <Link
+                              href={`/${locale}/dashboard/accounts/${account.id}`}
+                              passHref
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                              >
+                                {t.viewDetails}
+                              </Button>
+                            </Link>
                             <Link
                               href={`/${locale}/dashboard/transactions?accountId=${account.id}`}
                               passHref
