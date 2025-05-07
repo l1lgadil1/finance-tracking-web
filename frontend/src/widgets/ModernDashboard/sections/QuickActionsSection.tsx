@@ -1,10 +1,12 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Locale } from '@/shared/lib/i18n';
 import { Card, CardHeader, CardBody } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
 import { PlusCircle, Target, TrendingUp, TrendingDown, CreditCard, ArrowUpRight, BarChart4 } from 'lucide-react';
 import Link from 'next/link';
+import { TransactionModal } from '@/features/transaction/ui/TransactionModal';
+import { TransactionType } from '@/shared/constants/finance';
 
 const quickActionsTranslations = {
   en: {
@@ -61,20 +63,23 @@ const buttonVariants = {
 interface QuickActionsSectionProps {
   locale: Locale;
   onActionClick?: (action: string) => void;
+  onDataRefresh?: () => Promise<void>;
 }
 
 export const QuickActionsSection: FC<QuickActionsSectionProps> = ({ 
   locale, 
-  onActionClick = () => {} 
+  onActionClick = () => {},
+  onDataRefresh
 }) => {
   const t = quickActionsTranslations[locale] || quickActionsTranslations.en;
+  const [modalState, setModalState] = useState<null | TransactionType>(null);
   
   // Quick action handlers
   const handleAddGoal = () => onActionClick('addGoal');
-  const handleAddIncome = () => onActionClick('addIncome');
-  const handleAddExpense = () => onActionClick('addExpense');
+  const handleAddIncome = () => setModalState(TransactionType.INCOME);
+  const handleAddExpense = () => setModalState(TransactionType.EXPENSE);
   const handleAddAccount = () => onActionClick('addAccount');
-  const handleAddTransfer = () => onActionClick('addTransfer');
+  const handleAddTransfer = () => setModalState(TransactionType.TRANSFER);
   const handleAddBudget = () => onActionClick('addBudget');
   
   return (
@@ -176,6 +181,19 @@ export const QuickActionsSection: FC<QuickActionsSectionProps> = ({
           </motion.div>
         </motion.div>
       </CardBody>
+      {/* Transaction Modals for quick actions */}
+      {modalState && (
+        <TransactionModal
+          isOpen={!!modalState}
+          onClose={() => setModalState(null)}
+          locale={locale}
+          defaultTransactionType={modalState}
+          onSuccess={async () => {
+            setModalState(null);
+            if (onDataRefresh) await onDataRefresh();
+          }}
+        />
+      )}
     </Card>
   );
 }; 

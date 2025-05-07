@@ -64,7 +64,7 @@ interface AccountsSectionProps {
 
 export const AccountsSection: FC<AccountsSectionProps> = ({ locale }) => {
   const t = accountsTranslations[locale] || accountsTranslations.en;
-  const { accounts, isLoading, hasErrors } = useDashboardData();
+  const { accounts, isLoading, hasErrors, refresh } = useDashboardData();
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [selectedFromAccountId, setSelectedFromAccountId] = useState<string | null>(null);
   
@@ -222,9 +222,10 @@ export const AccountsSection: FC<AccountsSectionProps> = ({ locale }) => {
           }}
           locale={locale}
           defaultTransactionType={TransactionType.TRANSFER}
-          onSuccess={() => {
+          onSuccess={async () => {
             setIsTransactionModalOpen(false);
             setSelectedFromAccountId(null);
+            await refresh();
           }}
           selectedFromAccountId={selectedFromAccountId}
         />

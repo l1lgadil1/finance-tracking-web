@@ -100,27 +100,36 @@ const translations = {
   }
 };
 
-// Format finance message - handles special data formats like account balances
+// Improve the finance message formatter for better rendering of structured data
 const formatFinanceMessage = (message: string) => {
-  // Handle account balance sections with ** markers
-  const formattedMessage = message.replace(
+  // First, replace newlines with <br> to preserve line breaks
+  let formattedMessage = message.replace(/\n/g, '<br>');
+  
+  // Special case: Handle key-value pairs with ** markers first
+  formattedMessage = formattedMessage.replace(
     /\*\*(.*?):\*\*(.*?)(?=-\s*\*\*|$)/g, 
     '<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(160, 174, 192, 0.2);"><span style="font-weight: 600;">$1:</span><span style="font-weight: 700;">$2</span></div>'
   );
   
-  // Handle negative balance warnings
-  const warningFormatted = formattedMessage.replace(
+  // Special case: Handle negative balance warnings
+  formattedMessage = formattedMessage.replace(
     /\*\*Негативный баланс:\*\*(.*?)(?=\s*\*\*|$)/g,
     '<div style="margin-top: 1rem; padding: 0.75rem; border-radius: 0.375rem; background-color: rgba(254, 202, 202, 0.3); color: rgb(185, 28, 28);"><span style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Негативный баланс:</span><span style="display: block;">$1</span></div>'
   );
   
   // Same for English
-  const finalFormatted = warningFormatted.replace(
+  formattedMessage = formattedMessage.replace(
     /\*\*Negative balance:\*\*(.*?)(?=\s*\*\*|$)/g,
     '<div style="margin-top: 1rem; padding: 0.75rem; border-radius: 0.375rem; background-color: rgba(254, 202, 202, 0.3); color: rgb(185, 28, 28);"><span style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Negative balance:</span><span style="display: block;">$1</span></div>'
   );
   
-  return finalFormatted;
+  // Generic case: Handle any remaining ** for bold text (like goal titles)
+  formattedMessage = formattedMessage.replace(
+    /\*\*(.*?)\*\*/g,
+    '<strong style="font-weight: 700;">$1</strong>'
+  );
+  
+  return formattedMessage;
 };
 
 export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
@@ -359,28 +368,52 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   
   // Helper function to render message content with proper formatting
   const renderMessageContent = (content: string) => {
-    // Check if the content appears to be structured financial data (contains ### or **)
-    if (content.includes('###') || content.includes('**')) {
-      // Process financial data with HTML for better formatting
+    // Process financial data with custom formatter if it contains financial indicators
+    if (content.includes('**') || 
+        content.includes('сумма:') || 
+        content.includes('баланс:') || 
+        content.includes('Цель:') ||
+        content.includes('Дедлайн:')) {
       return (
         <div 
-          className="finance-data"
+          className="finance-data w-full"
           style={financeStyles.financeData}
           dangerouslySetInnerHTML={{ __html: formatFinanceMessage(content) }}
         />
       );
     }
     
-    // Use ReactMarkdown for regular messages with wrapper div for styling
+    // Use ReactMarkdown for regular messages with enhanced component customization
     return (
-      <div className="prose prose-sm dark:prose-invert">
+      <div className="prose prose-sm max-w-none dark:prose-invert break-words">
         <ReactMarkdown
           components={{
             p: ({children}) => <p className="my-1">{children}</p>,
             ul: ({children}) => <ul className="list-disc pl-4 my-1">{children}</ul>,
             ol: ({children}) => <ol className="list-decimal pl-4 my-1">{children}</ol>,
             li: ({children}) => <li className="my-0.5">{children}</li>,
-            a: ({href, children}) => <a href={href} className="text-blue-600 hover:underline">{children}</a>
+            a: ({href, children}) => <a href={href} className="text-blue-600 hover:underline">{children}</a>,
+            code: ({node, inline, className, children, ...props}) => {
+              const match = /language-(\w+)/.exec(className || '');
+              return !inline ? (
+                <pre className="bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto">
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                </pre>
+              ) : (
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props}>
+                  {children}
+                </code>
+              );
+            },
+            pre: ({children}) => <div className="overflow-x-auto">{children}</div>,
+            blockquote: ({children}) => (
+              <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-3 italic my-2">
+                {children}
+              </blockquote>
+            ),
+            strong: ({children}) => <strong className="font-bold">{children}</strong>,
           }}
         >
           {content}
@@ -487,7 +520,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   // Render the current chat view
   const renderCurrentChat = () => (
     <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
-      <div className="bg-accent/50 dark:bg-accent/20 rounded-lg p-4 border border-border">
+      <div className="bg-accent/50 dark:bg-accent/20 rounded-lg p-4 border border-border shrink-0">
         <p className="text-foreground dark:text-foreground">
           {t.description}
         </p>
@@ -495,7 +528,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
 
       {/* Back to history button (when viewing a history conversation) */}
       {selectedConversationId && (
-        <div>
+        <div className="shrink-0">
           <Button variant="ghost" size="sm" onClick={() => { setView('history'); setSelectedConversationId(null); }}>
             <IoChevronBack className="mr-1" /> {t.backToHistory}
           </Button>
@@ -503,8 +536,8 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
       )}
 
       {/* Chat interface - make it fill available height */}
-      <div className="flex-1 overflow-y-auto border dark:border-gray-700 rounded-lg p-4 bg-background dark:bg-background">
-        <div className="flex flex-col space-y-4">
+      <div className="flex-1 overflow-auto border dark:border-gray-700 rounded-lg p-4 bg-background dark:bg-background">
+        <div className="flex flex-col space-y-4 min-h-full">
           {conversation.messages.map((msg) => (
             <div 
               key={msg.id} 
@@ -569,7 +602,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
       </div>
 
       {/* Input form */}
-      <form onSubmit={handleSubmit} className="flex space-x-2 mt-4">
+      <form onSubmit={handleSubmit} className="flex space-x-2 mt-4 shrink-0">
         <input
           type="text"
           value={message}
@@ -661,10 +694,10 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               width: window.innerWidth < 768 ? '100%' : `${modalSize.width}px`,
               height: window.innerWidth < 768 ? '100%' : `${modalSize.height}px`,
             }}
-            className="fixed inset-0 md:inset-auto md:top-[10%] md:left-1/2 md:-translate-x-1/2 w-full h-[100dvh] md:h-auto md:w-auto md:max-w-[90vw] md:max-h-[80vh] bg-white dark:bg-gray-800 md:rounded-xl shadow-2xl overflow-hidden flex flex-col z-[60]"
+            className="fixed inset-0 md:inset-auto md:top-[10%] md:left-1/2 md:-translate-x-1/2 w-full h-[100dvh] md:h-auto md:w-auto md:max-w-[90vw] md:max-h-[80vh] bg-white dark:bg-gray-800 md:rounded-xl shadow-2xl flex flex-col z-[60]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 md:p-6 border-b border-border">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-border shrink-0">
               <div className="flex items-center space-x-3">
                 <BiBrain className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                 <h2 className="text-xl font-semibold text-foreground dark:text-foreground">
@@ -681,15 +714,15 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               </Button>
             </div>
 
-            {/* Content with Tabs - update to fill available height */}
-            <div className="flex-1 overflow-hidden flex flex-col p-4 md:p-6 pt-4">
-              <Tabs value={view} onValueChange={(value) => setView(value as 'current' | 'history')} className="flex-1 flex flex-col">
-                <TabsList className="mb-4">
+            {/* Content with Tabs - with proper overflow handling */}
+            <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6 pt-4">
+              <Tabs value={view} onValueChange={(value) => setView(value as 'current' | 'history')} className="flex-1 flex flex-col overflow-hidden">
+                <TabsList className="mb-4 shrink-0">
                   <TabsTrigger value="current">{t.currentChat}</TabsTrigger>
                   <TabsTrigger value="history">{t.history}</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="current" className="flex-1 flex flex-col overflow-hidden">
+                <TabsContent value="current" className="flex-1 overflow-hidden flex flex-col">
                   {renderCurrentChat()}
                 </TabsContent>
                 

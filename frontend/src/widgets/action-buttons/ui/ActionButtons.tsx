@@ -10,9 +10,10 @@ import { TransactionType } from '@/shared/constants/finance';
 
 interface ActionButtonsProps {
   locale: Locale;
+  onDataRefresh?: () => Promise<void>;
 }
 
-export const ActionButtons: React.FC<ActionButtonsProps> = ({ locale }) => {
+export const ActionButtons: React.FC<ActionButtonsProps> = ({ locale, onDataRefresh }) => {
   const [isAIModalOpen, setIsAIModalOpen] = React.useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = React.useState(false);
 
@@ -63,6 +64,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ locale }) => {
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
         locale={locale}
+        onSuccess={async () => {
+          setIsTransactionModalOpen(false);
+          if (onDataRefresh) await onDataRefresh();
+        }}
       />
     </>
   );

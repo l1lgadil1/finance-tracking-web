@@ -211,6 +211,7 @@
 - Integrated the notification system with the settings page
 - Added internationalization support for notification components
 - Implemented responsive design for mobile and desktop
+- ActionButtons and QuickActionsSection now use an onDataRefresh prop for post-transaction UI updates, instead of directly using useDashboardData. This prevents context errors and allows parent components inside DashboardDataProvider to control data refresh after transactions.
 
 ## Planned
 

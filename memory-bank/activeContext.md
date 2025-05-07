@@ -26,6 +26,7 @@ We have recently improved the application's transactions management system with 
 - Implemented route change detection using Next.js usePathname hook for immediate UI updates
 - Added automatic mobile sidebar closing when changing routes for better UX
 - Used existing theme variables consistently across all components
+- Fixed context error in ActionButtons and QuickActionsSection by removing direct useDashboardData usage. Both now accept an onDataRefresh prop, which should be passed from a parent inside DashboardDataProvider (e.g., dashboard layout/page). This allows dashboard data (accounts, transactions, analytics) to refresh after any transaction, regardless of where the action is triggered, and prevents context errors if these widgets are rendered outside the provider.
 
 ## Recent Accomplishments
 
