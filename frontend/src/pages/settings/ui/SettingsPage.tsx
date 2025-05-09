@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiUser, FiShield, FiGlobe, FiDatabase, FiCreditCard, FiMoon, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiShield, FiGlobe, FiDatabase, FiCreditCard, FiMoon, FiChevronLeft, FiChevronRight, FiTag } from 'react-icons/fi';
 import { Card, CardBody } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 import { ProfileSection } from './sections/ProfileSection';
@@ -11,6 +11,7 @@ import { AppearanceSection } from './sections/AppearanceSection';
 import { LanguageSection } from './sections/LanguageSection';
 import { DataSection } from './sections/DataSection';
 import { SubscriptionSection } from './sections/SubscriptionSection';
+import { CategorySection } from './sections/CategorySection';
 
 // Define translations for the settings page
 const translations = {
@@ -22,6 +23,7 @@ const translations = {
     language: 'Language',
     dataManagement: 'Data Management',
     subscription: 'Subscription',
+    categories: 'Categories',
   },
   ru: {
     settings: 'Настройки',
@@ -31,6 +33,7 @@ const translations = {
     language: 'Язык',
     dataManagement: 'Управление данными',
     subscription: 'Подписка',
+    categories: 'Категории',
   }
 };
 
@@ -138,6 +141,12 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
       label: t.subscription,
       icon: <FiCreditCard className="w-5 h-5" />,
       component: <SubscriptionSection locale={locale} />
+    },
+    {
+      id: 'categories',
+      label: t.categories,
+      icon: <FiTag className="w-5 h-5" />,
+      component: <CategorySection locale={locale} />
     }
   ];
 

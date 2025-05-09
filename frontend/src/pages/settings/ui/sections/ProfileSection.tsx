@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { FiCamera, FiSave } from 'react-icons/fi';
-import { Card, CardHeader, CardBody, CardFooter, Input, Button, Avatar } from '@/shared/ui';
+import { useState, useEffect } from 'react';
+import { FiSave } from 'react-icons/fi';
+import { Card, CardHeader, CardBody, CardFooter, Input, Button } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
+import { userApi, UserProfile } from '@/entities/user';
+import toast from 'react-hot-toast';
 
 // Define translations
 const translations = {
@@ -12,26 +14,26 @@ const translations = {
     fullName: 'Full Name',
     email: 'Email Address',
     phone: 'Phone Number',
-    country: 'Country/Region',
     saveChanges: 'Save Changes',
-    clickToChange: 'Click on the avatar to change your profile picture',
     enterFullName: 'Enter your full name',
     enterEmail: 'Enter your email address',
     enterPhone: 'Enter your phone number',
-    enterCountry: 'Enter your country or region'
+    profileUpdated: 'Profile updated successfully!',
+    errorUpdating: 'Error updating profile. Please try again.',
+    errorLoading: 'Could not load profile data.'
   },
   ru: {
     profileSettings: 'Настройки профиля',
     fullName: 'Полное имя',
     email: 'Электронная почта',
     phone: 'Номер телефона',
-    country: 'Страна/Регион',
     saveChanges: 'Сохранить изменения',
-    clickToChange: 'Нажмите на аватар, чтобы изменить фото профиля',
     enterFullName: 'Введите ваше полное имя',
     enterEmail: 'Введите вашу электронную почту',
     enterPhone: 'Введите ваш номер телефона',
-    enterCountry: 'Введите вашу страну или регион'
+    profileUpdated: 'Профиль успешно обновлен!',
+    errorUpdating: 'Ошибка при обновлении профиля. Пожалуйста, попробуйте снова.',
+    errorLoading: 'Не удалось загрузить данные профиля.'
   }
 };
 
@@ -41,14 +43,36 @@ interface ProfileSectionProps {
 
 export const ProfileSection = ({ locale }: ProfileSectionProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    country: 'United States'
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [formData, setFormData] = useState<Partial<UserProfile>>({
+    name: '',
+    email: '',
+    phone: ''
   });
   
   const t = translations[locale];
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setIsLoadingProfile(true);
+        const userProfile = await userApi.getProfile();
+        setFormData({
+          name: userProfile.name || '',
+          email: userProfile.email || '',
+          phone: userProfile.phone || ''
+        });
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error(t.errorLoading);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [t.errorLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -58,30 +82,42 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await userApi.updateProfile({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      });
+      toast.success(t.profileUpdated);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(t.errorUpdating);
+    } finally {
       setIsLoading(false);
-      // Show success notification here
-    }, 1000);
-  };
-
-  const handleAvatarClick = () => {
-    // Trigger file input click
-    document.getElementById('avatar-upload')?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Handle avatar upload
-      console.log('Avatar file selected:', file);
-      // Here you would normally upload the file to your backend
     }
   };
+
+  if (isLoadingProfile) {
+    return (
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold">{t.profileSettings}</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="h-4 bg-gray-200 rounded w-48 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-64"></div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -90,38 +126,6 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
       </CardHeader>
       <CardBody>
         <form onSubmit={handleSubmit}>
-          <div className="flex flex-col sm:flex-row mb-8 items-center">
-            <div className="relative mb-4 sm:mb-0 sm:mr-8">
-              <Avatar 
-                src="" 
-                name={formData.name}
-                size="xl"
-                onClick={handleAvatarClick}
-                className="cursor-pointer"
-              />
-              <div 
-                className="absolute bottom-0 right-0 bg-primary-500 text-white p-1.5 rounded-full cursor-pointer"
-                onClick={handleAvatarClick}
-              >
-                <FiCamera size={16} />
-              </div>
-              <input 
-                type="file" 
-                id="avatar-upload" 
-                className="hidden" 
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-            </div>
-            <div className="text-center sm:text-left">
-              <h3 className="text-lg font-medium">{formData.name}</h3>
-              <p className="text-muted-foreground">{formData.email}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t.clickToChange}
-              </p>
-            </div>
-          </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input 
               label={t.fullName}
@@ -146,14 +150,6 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
               value={formData.phone}
               onChange={handleInputChange}
               placeholder={t.enterPhone}
-            />
-            
-            <Input 
-              label={t.country}
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              placeholder={t.enterCountry}
             />
           </div>
         </form>

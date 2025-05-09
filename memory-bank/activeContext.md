@@ -27,6 +27,10 @@ We have recently improved the application's transactions management system with 
 - Added automatic mobile sidebar closing when changing routes for better UX
 - Used existing theme variables consistently across all components
 - Fixed context error in ActionButtons and QuickActionsSection by removing direct useDashboardData usage. Both now accept an onDataRefresh prop, which should be passed from a parent inside DashboardDataProvider (e.g., dashboard layout/page). This allows dashboard data (accounts, transactions, analytics) to refresh after any transaction, regardless of where the action is triggered, and prevents context errors if these widgets are rendered outside the provider.
+- Added a Category Management section to the Settings page that allows users to create, edit, and delete categories
+- Fixed issues with the export data functionality
+- Enhanced error handling for API calls
+- Improved the profile reset feature
 
 ## Recent Accomplishments
 
@@ -183,4 +187,8 @@ We have recently improved the application's transactions management system with 
 - Implement more advanced filtering capabilities
 - Develop the AI insights backend functionality
 - Add data export and report generation features
-- Enhance accessibility features for chart components 
+- Enhance accessibility features for chart components
+
+## Current Focus
+
+- Adding settings section for managing categories and category types to improve user control over financial organization 

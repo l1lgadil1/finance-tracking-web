@@ -240,4 +240,16 @@
 4. Need more comprehensive unit and e2e test coverage 
 5. AI insights section still uses placeholder implementation
 6. Chart components need further accessibility enhancements 
-7. debt_give/debt_take are not distinguished in backend logic due to current Prisma schema; both are mapped to 'debt' 
+7. debt_give/debt_take are not distinguished in backend logic due to current Prisma schema; both are mapped to 'debt'
+
+## What Works
+
+- **User Authentication**: Registration, login, profile management.
+- **Account Management**: Create, view, edit, and delete financial accounts.
+- **Transaction Management**: Adding, editing, categorizing, and filtering transactions.
+- **Category Management**: Users can now manage their categories through a dedicated settings section.
+- **Dashboard**: Overview of accounts, recent transactions, financial insights.
+- **Debt Tracking**: Tracking personal debts (gave/took debt).
+- **Data Import/Export**: Export financial data in JSON/CSV formats.
+- **Profile Reset**: Reset user profile data while maintaining account.
+- **Profile Management**: Update user information and preferences. 

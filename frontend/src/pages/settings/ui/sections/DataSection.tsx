@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useRef } from 'react';
-import { FiDownload, FiUpload, FiAlertCircle, FiTrash2, FiRefreshCw } from 'react-icons/fi';
+import React, { useState, useRef, useEffect } from 'react';
+import { FiDownload, FiUpload, FiAlertCircle, FiTrash2, FiRefreshCw, FiClock } from 'react-icons/fi';
 import { Card, CardHeader, CardBody, CardFooter, Button, Dialog } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 import { api } from '@/shared/api';
@@ -20,7 +20,7 @@ const translations = {
     noFileSelected: 'No file selected',
     importButton: 'Import',
     resetProfile: 'Reset Profile',
-    resetProfileDescription: 'Reset your profile to default settings. This will remove all your transactions, accounts, and settings.',
+    resetProfileDescription: 'Reset your profile to default settings. This will remove all your transactions, goals, accounts, and settings.',
     resetWarning: 'Warning: This action cannot be undone.',
     resetButton: 'Reset Profile',
     deleteAccount: 'Delete Account',
@@ -28,7 +28,7 @@ const translations = {
     deleteWarning: 'Warning: This action cannot be undone and will delete all your data.',
     deleteButton: 'Delete Account',
     confirmReset: 'Confirm Reset',
-    confirmResetText: 'Are you sure you want to reset your profile? This will delete all your transactions, accounts, and settings.',
+    confirmResetText: 'Are you sure you want to reset your profile? This will delete all your transactions, goals, accounts, and settings.',
     confirmDelete: 'Confirm Deletion',
     confirmDeleteText: 'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.',
     cancel: 'Cancel',
@@ -42,7 +42,9 @@ const translations = {
     error: 'Error',
     successReset: 'Your profile has been reset to default state',
     errorNoProfile: 'No active profile selected',
-    errorReset: 'Failed to reset profile. Please try again.'
+    errorReset: 'Failed to reset profile. Please try again.',
+    comingSoon: 'Coming Soon',
+    featureUnderDevelopment: 'This feature is currently under development and will be available soon.'
   },
   ru: {
     dataManagement: 'Управление данными',
@@ -56,7 +58,7 @@ const translations = {
     noFileSelected: 'Файл не выбран',
     importButton: 'Импортировать',
     resetProfile: 'Сбросить профиль',
-    resetProfileDescription: 'Сбросьте ваш профиль до настроек по умолчанию. Это удалит все ваши транзакции, счета и настройки.',
+    resetProfileDescription: 'Сбросьте ваш профиль до настроек по умолчанию. Это удалит все ваши транзакции, цели, счета и настройки.',
     resetWarning: 'Предупреждение: Это действие нельзя отменить.',
     resetButton: 'Сбросить профиль',
     deleteAccount: 'Удалить аккаунт',
@@ -64,7 +66,7 @@ const translations = {
     deleteWarning: 'Предупреждение: Это действие нельзя отменить, и оно удалит все ваши данные.',
     deleteButton: 'Удалить аккаунт',
     confirmReset: 'Подтвердите сброс',
-    confirmResetText: 'Вы уверены, что хотите сбросить ваш профиль? Это удалит все ваши транзакции, счета и настройки.',
+    confirmResetText: 'Вы уверены, что хотите сбросить ваш профиль? Это удалит все ваши транзакции, цели, счета и настройки.',
     confirmDelete: 'Подтвердите удаление',
     confirmDeleteText: 'Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить, и оно навсегда удалит все ваши данные.',
     cancel: 'Отмена',
@@ -78,7 +80,9 @@ const translations = {
     error: 'Ошибка',
     successReset: 'Ваш профиль был сброшен до исходного состояния',
     errorNoProfile: 'Нет активного профиля',
-    errorReset: 'Не удалось сбросить профиль. Пожалуйста, попробуйте снова.'
+    errorReset: 'Не удалось сбросить профиль. Пожалуйста, попробуйте снова.',
+    comingSoon: 'Скоро будет доступно',
+    featureUnderDevelopment: 'Эта функция находится в разработке и будет доступна в ближайшее время.'
   }
 };
 
@@ -98,9 +102,9 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [manualProfileIdDialogOpen, setManualProfileIdDialogOpen] = useState(false);
-  const [manualProfileId, setManualProfileId] = useState('');
+  const [selectedProfileId, setSelectedProfileId] = useState('');
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [availableProfiles, setAvailableProfiles] = useState<Array<{id: string, name: string}>>([]);
   
@@ -111,6 +115,17 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
     console.log(`Toast: ${props.title} - ${props.description}`);
     alert(`${props.title}: ${props.description}`);
   };
+  
+  // Load profiles when component mounts
+  useEffect(() => {
+    fetchProfiles();
+    
+    // Try to set the active profile as the default selected profile
+    const activeProfile = getActiveProfile();
+    if (activeProfile && activeProfile.id) {
+      setSelectedProfileId(activeProfile.id);
+    }
+  }, []);
   
   // Get active profile from localStorage since we may not have the store
   const getActiveProfile = () => {
@@ -157,33 +172,62 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
     return null;
   };
 
-  const handleExportData = (format: 'csv' | 'json') => {
+  const handleExportData = async (format: 'csv' | 'json') => {
     setIsExporting(true);
     
-    // Simulate API call for data export
-    setTimeout(() => {
-      // This would normally be an API call to generate the export file
-      const dummyData = format === 'json' 
-        ? JSON.stringify({ transactions: [], accounts: [], categories: [] })
-        : 'id,date,amount,description,category,account\n';
+    try {
+      // Create FormData for the body
+      const formData = new FormData();
+      formData.append('format', format);
       
-      // Create a downloadable file
-      const blob = new Blob(
-        [dummyData], 
-        { type: format === 'json' ? 'application/json' : 'text/csv' }
-      );
+      // Get token for authorization
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       
+      // Use the API URL from the api client configuration
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+      
+      // Make a POST request to download the file
+      const response = await fetch(`${API_URL}/auth/export-data`, {
+        method: 'POST',
+        headers: {
+          'Accept': format === 'json' ? 'application/json' : 'application/zip',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+      
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `aqshatracker-export.${format}`;
+      a.download = `aqshatracker-export.${format === 'json' ? 'json' : 'zip'}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
+      toast({
+        title: t.success,
+        description: 'Data exported successfully',
+        variant: 'success',
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: t.error,
+        description: `Failed to export data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      });
+    } finally {
       setIsExporting(false);
-    }, 1500);
+    }
   };
 
   const triggerFileInput = () => {
@@ -210,63 +254,172 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
     setSelectedFile(null);
   };
 
-  const handleDeleteAccount = () => {
-    // Here you would normally call an API to delete the account
-    console.log('Account deletion requested');
-    setIsDeleteDialogOpen(false);
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    
+    try {
+      // Use the API client instead of direct fetch
+      await api.delete('/auth/delete-account');
+      
+      toast({
+        title: t.success,
+        description: 'Your account has been deleted successfully.',
+        variant: 'success',
+      });
+      
+      // Sign out and redirect to landing page
+      localStorage.clear();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Delete account error:', error);
+      toast({
+        title: t.error,
+        description: `Failed to delete account: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   // Function to fetch profiles from API
   const fetchProfiles = async () => {
-    if (availableProfiles.length > 0) return;
-    
     setLoadingProfiles(true);
     try {
-      // Use any type to avoid type issues for now
+      console.log('Fetching profiles...');
+      
+      // Get token for authorization
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (!token) {
+        console.warn('No auth token found - user might not be logged in');
+      }
+      
+      // Try to fetch profiles using the api client
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: any = await api.get('/profiles');
+      console.log('Profiles API response:', response);
       
-      if (response && response.data && Array.isArray(response.data)) {
-        // Now we know data is an array, map it to our expected format
+      // Extract data from response
+      // The response structure might be different depending on the API implementation
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let profilesData: any[] = [];
+      
+      if (Array.isArray(response)) {
+        // If response is directly an array
+        profilesData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // If response has a data property that's an array
+        profilesData = response.data;
+      } else if (response && typeof response === 'object') {
+        // If response is an object with another structure
+        console.log('Response is an object, checking for profiles array');
+        // Check for common API response patterns
+        if (response.profiles && Array.isArray(response.profiles)) {
+          profilesData = response.profiles;
+        } else if (response.result && Array.isArray(response.result)) {
+          profilesData = response.result;
+        } else if (response.items && Array.isArray(response.items)) {
+          profilesData = response.items;
+        }
+      }
+      
+      console.log('Extracted profiles data:', profilesData);
+      
+      if (profilesData && profilesData.length > 0) {
+        // Map the profiles to our expected format
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const profiles = response.data.map((profile: any) => ({
+        const profiles = profilesData.map((profile: any) => ({
           id: profile.id,
           name: profile.name || `Profile ${profile.id.slice(0, 8)}`
         }));
         
+        console.log('Processed profiles:', profiles);
         setAvailableProfiles(profiles);
+        
         // If there's only one profile, select it automatically
         if (profiles.length === 1) {
-          setManualProfileId(profiles[0].id);
+          setSelectedProfileId(profiles[0].id);
+        }
+      } else {
+        console.warn('No profiles found in the response');
+        
+        // Check if user is currently viewing a profile in the app
+        // This is a fallback if the API didn't return profiles
+        const activeProfile = getActiveProfile();
+        if (activeProfile && activeProfile.id) {
+          console.log('Using active profile from local storage:', activeProfile);
+          setAvailableProfiles([{
+            id: activeProfile.id,
+            name: activeProfile.name || `Profile ${activeProfile.id.slice(0, 8)}`
+          }]);
+          setSelectedProfileId(activeProfile.id);
         }
       }
     } catch (error) {
       console.error('Error fetching profiles:', error);
+      
+      // Fallback to active profile as a last resort
+      const activeProfile = getActiveProfile();
+      if (activeProfile && activeProfile.id) {
+        console.log('Fallback: Using active profile from local storage:', activeProfile);
+        setAvailableProfiles([{
+          id: activeProfile.id,
+          name: activeProfile.name || `Profile ${activeProfile.id.slice(0, 8)}`
+        }]);
+        setSelectedProfileId(activeProfile.id);
+      }
     } finally {
       setLoadingProfiles(false);
     }
   };
   
-  // Modify handleResetProfile to also fetch profiles when showing the manual dialog
-  const handleResetProfile = async () => {
-    const activeProfile = getActiveProfile();
-    
-    if (!activeProfile) {
-      // Show dialog to enter profile ID manually
-      setManualProfileIdDialogOpen(true);
-      // Try to fetch available profiles
-      fetchProfiles();
+  const handleResetProfileClick = () => {
+    // If no profile is selected, try to get the active profile
+    if (!selectedProfileId) {
+      const activeProfile = getActiveProfile();
+      if (activeProfile && activeProfile.id) {
+        setSelectedProfileId(activeProfile.id);
+        // Add a slight delay to allow state update
+        setTimeout(() => {
+          setIsResetDialogOpen(true);
+        }, 50);
+        return;
+      }
+      
+      toast({
+        title: t.error,
+        description: t.errorNoProfile,
+        variant: "error",
+      });
       return;
     }
-
-    proceedWithProfileReset(activeProfile);
+    
+    setIsResetDialogOpen(true);
   };
   
-  const proceedWithProfileReset = async (profile: { id: string }) => {
+  const handleConfirmReset = async () => {
+    // Get the profile to reset (selected or active)
+    let profileId = selectedProfileId;
+    
+    if (!profileId) {
+      const activeProfile = getActiveProfile();
+      if (activeProfile && activeProfile.id) {
+        profileId = activeProfile.id;
+      } else {
+        toast({
+          title: t.error,
+          description: t.errorNoProfile,
+          variant: "error",
+        });
+        return;
+      }
+    }
+    
     setIsResetting(true);
     try {
-      console.log('Resetting profile with ID:', profile.id);
-      await api.post(`/profiles/${profile.id}/reset`);
+      console.log('Resetting profile with ID:', profileId);
+      await api.post(`/profiles/${profileId}/reset`);
       toast({
         title: t.success,
         description: t.successReset,
@@ -287,66 +440,6 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       setIsResetDialogOpen(false);
     }
   };
-  
-  const handleManualProfileSubmit = () => {
-    if (manualProfileId.trim()) {
-      setManualProfileIdDialogOpen(false);
-      proceedWithProfileReset({ id: manualProfileId.trim() });
-    } else {
-      toast({
-        title: t.error,
-        description: t.errorNoProfile,
-        variant: "error",
-      });
-    }
-  };
-
-  // Manual Profile ID Dialog
-  const renderManualProfileDialog = () => (
-    <Dialog
-      isOpen={manualProfileIdDialogOpen}
-      onClose={() => setManualProfileIdDialogOpen(false)}
-      title={loadingProfiles ? t.loadingProfiles : t.selectProfile}
-      primaryActionText={t.resetSelectedProfile}
-      onPrimaryAction={handleManualProfileSubmit}
-      size="md"
-    >
-      {loadingProfiles ? (
-        <div className="text-center py-4">{t.loadingProfilesText}</div>
-      ) : availableProfiles.length > 0 ? (
-        <div className="space-y-4">
-          <p>{t.selectProfileInstruction}</p>
-          <select
-            value={manualProfileId}
-            onChange={(e) => setManualProfileId(e.target.value)}
-            className="w-full p-3 border border-border rounded-md bg-card"
-          >
-            <option value="" disabled>-- Select a profile --</option>
-            {availableProfiles.map(profile => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name} ({profile.id.slice(0, 8)}...)
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p>No profiles found or failed to load profiles. Please enter the profile ID manually:</p>
-          <input
-            type="text"
-            value={manualProfileId}
-            onChange={(e) => setManualProfileId(e.target.value)}
-            className="w-full p-2 border border-border rounded-md"
-            placeholder="Enter profile ID..."
-          />
-        </div>
-      )}
-
-      <div className="mt-4 text-xs text-muted-foreground">
-        <p>Resetting a profile will delete all transactions, custom categories, and reset account balances.</p>
-      </div>
-    </Dialog>
-  );
 
   return (
     <div className="space-y-8" suppressHydrationWarning>
@@ -387,7 +480,18 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
         <CardHeader>
           <h2 className="text-xl font-semibold">{t.importData}</h2>
         </CardHeader>
-        <CardBody>
+        <CardBody className="relative">
+          {/* Coming Soon Overlay */}
+          <div className="absolute inset-0 bg-card/80 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 rounded-b-md">
+            <div className="flex items-center gap-2 text-xl font-medium text-primary-500">
+              <FiClock />
+              <span>{t.comingSoon}</span>
+            </div>
+            <p className="text-muted-foreground mt-2 text-center max-w-md px-4">
+              {t.featureUnderDevelopment}
+            </p>
+          </div>
+          
           <p className="text-muted-foreground mb-4">
             {t.importDescription}
           </p>
@@ -409,6 +513,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
               variant="outline"
               leftIcon={<FiUpload />}
               onClick={triggerFileInput}
+              disabled={true}
             >
               {t.chooseFile}
             </Button>
@@ -419,6 +524,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
               className="hidden"
               accept=".csv,.json"
               onChange={handleFileChange}
+              disabled={true}
             />
             
             {selectedFile && (
@@ -434,6 +540,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
             <Button
               variant="primary"
               onClick={handleImportData}
+              disabled={true}
             >
               {t.importButton}
             </Button>
@@ -459,14 +566,71 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
             </div>
           </div>
           
-          <Button
-            variant="outline"
-            leftIcon={<FiRefreshCw className="text-warning" />}
-            className="border-warning/50 text-warning hover:bg-warning/10"
-            onClick={() => setIsResetDialogOpen(true)}
-          >
-            {t.resetButton}
-          </Button>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="profile-select" className="block text-sm font-medium mb-2">
+                {t.selectProfile}
+              </label>
+              
+              {loadingProfiles ? (
+                <div className="py-2 text-sm text-muted-foreground">{t.loadingProfiles}</div>
+              ) : availableProfiles.length > 0 ? (
+                <select
+                  id="profile-select"
+                  value={selectedProfileId}
+                  onChange={(e) => setSelectedProfileId(e.target.value)}
+                  className="w-full p-3 border border-border rounded-md bg-card"
+                >
+                  <option value="" disabled>-- {t.selectProfile} --</option>
+                  {availableProfiles.map(profile => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name} ({profile.id.slice(0, 8)}...)
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm text-error">No profiles found from API. You can still reset your active profile:</div>
+                  <div className="p-2 border border-border rounded-md bg-card">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const activeProfile = getActiveProfile();
+                        if (activeProfile && activeProfile.id) {
+                          setSelectedProfileId(activeProfile.id);
+                          setAvailableProfiles([{
+                            id: activeProfile.id,
+                            name: activeProfile.name || `Active Profile (${activeProfile.id.slice(0, 8)})`
+                          }]);
+                          setIsResetDialogOpen(true);
+                        } else {
+                          toast({
+                            title: t.error,
+                            description: t.errorNoProfile,
+                            variant: "error",
+                          });
+                        }
+                      }}
+                    >
+                      Reset Active Profile
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <Button
+              variant="outline"
+              leftIcon={<FiRefreshCw className="text-warning" />}
+              className="border-warning/50 text-warning hover:bg-warning/10"
+              onClick={handleResetProfileClick}
+              isLoading={isResetting}
+              disabled={!selectedProfileId || loadingProfiles}
+            >
+              {t.resetButton}
+            </Button>
+          </div>
         </CardBody>
       </Card>
 
@@ -493,6 +657,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
             leftIcon={<FiTrash2 className="text-error" />}
             className="border-error/50 text-error hover:bg-error/10"
             onClick={() => setIsDeleteDialogOpen(true)}
+            isLoading={isDeleting}
           >
             {t.deleteButton}
           </Button>
@@ -505,14 +670,21 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
         onClose={() => setIsResetDialogOpen(false)}
         title={t.confirmReset}
         primaryActionText={t.confirm}
-        onPrimaryAction={handleResetProfile}
+        onPrimaryAction={handleConfirmReset}
         isPrimaryActionLoading={isResetting}
         size="md"
       >
         <p>{t.confirmResetText}</p>
+        {selectedProfileId && availableProfiles.length > 0 && (
+          <div className="my-3 p-3 bg-card rounded-md">
+            <p className="font-medium">Selected profile:</p>
+            <p>{availableProfiles.find(p => p.id === selectedProfileId)?.name || 'Unknown profile'}</p>
+          </div>
+        )}
         <ul className="list-disc pl-6 my-4 space-y-1">
           <li>Delete all your transactions</li>
           <li>Delete all custom categories</li>
+          <li>Delete all your goals</li>
           <li>Reset all account balances to zero</li>
           <li>Recreate default categories</li>
         </ul>
@@ -526,13 +698,11 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
         title={t.confirmDelete}
         primaryActionText={t.confirm}
         onPrimaryAction={handleDeleteAccount}
+        isPrimaryActionLoading={isDeleting}
         size="md"
       >
         <p>{t.confirmDeleteText}</p>
       </Dialog>
-
-      {/* Manual Profile ID Dialog */}
-      {renderManualProfileDialog()}
     </div>
   );
 };

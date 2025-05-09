@@ -21,7 +21,7 @@ export function useTransactionModal() {
     queryFn: accountApi.getAll,
   });
 
-  // Fetch categories
+  // Fetch categories with enhanced debugging
   const {
     data: categories,
     isLoading: isCategoriesLoading,
@@ -29,7 +29,25 @@ export function useTransactionModal() {
     refetch: refetchCategories,
   } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getAll,
+    queryFn: async () => {
+      console.log('Fetching categories for transaction modal...');
+      try {
+        const result = await categoryApi.getAll();
+        console.log('Categories API response:', result);
+        
+        // Log details about each category
+        if (Array.isArray(result)) {
+          result.forEach(cat => {
+            console.log(`Category: ${cat.name}, Type: ${cat.categoryTypeNameSnapshot}, TypeID: ${cat.categoryTypeId}`);
+          });
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+    },
   });
 
   // Fetch user profiles (to get profileId)

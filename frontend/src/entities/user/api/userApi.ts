@@ -9,6 +9,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
+  phone?: string;
 }
 
 export interface Profile {
@@ -24,7 +25,13 @@ export const userApi = {
   register: (userData: UserCredentials) => 
     api.post<{ token: string; user: UserProfile }>('/auth/register', userData),
     
-  getProfile: () => api.get<UserProfile>('/profile'),
+  getProfile: () => api.get<UserProfile>('/auth/profile'),
+
+  updateProfile: (profileData: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  }) => api.patch<UserProfile>('/auth/profile', profileData),
 
   getProfiles: () => api.get<Profile[]>('/profiles'),
 }; 

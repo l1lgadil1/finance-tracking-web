@@ -98,7 +98,12 @@ export class ProfileService {
         data: { balance: 0 },
       });
 
-      // 4. Create default categories
+      // 4. Delete all goals
+      await tx.goal.deleteMany({
+        where: { userId: userId },
+      });
+
+      // 5. Create default categories
       // Get system category types
       const incomeType = await tx.categoryType.findFirst({
         where: {

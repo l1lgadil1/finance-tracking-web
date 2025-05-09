@@ -234,16 +234,35 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
+  // Log all categories and their categoryTypeNameSnapshot for debugging
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      console.log('All available categories:', 
+        (categories as Category[]).map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          typeSnapshot: cat.categoryTypeNameSnapshot,
+          categoryTypeId: cat.categoryTypeId
+        }))
+      );
+    } else {
+      console.warn('No categories available in the transaction modal');
+    }
+  }, [categories]);
+
   // Filter categories based on transaction type
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
     
     // Get the category type name that corresponds to the selected transaction type
     const targetCategoryTypeName = getCategoryTypeForTransaction(transactionType);
+    console.log(`Filtering categories for type: ${transactionType} (looking for categoryTypeNameSnapshot: "${targetCategoryTypeName}")`);
     
     // Filter categories by their categoryTypeNameSnapshot
     return (categories as Category[]).filter(category => {
-      return category.categoryTypeNameSnapshot === targetCategoryTypeName;
+      const match = category.categoryTypeId === targetCategoryTypeName;
+      console.log(`Category ${category.name} has typeSnapshot: "${category.categoryTypeNameSnapshot}" - match: ${match}`);
+      return match;
     });
   }, [categories, transactionType]);
 

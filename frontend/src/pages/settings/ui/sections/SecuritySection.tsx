@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiSave, FiShield, FiSmartphone, FiTrash2 } from 'react-icons/fi';
-import { Card, CardHeader, CardBody, CardFooter, Input, Button, Checkbox } from '@/shared/ui';
+import { FiSave, FiTrash2 } from 'react-icons/fi';
+import { Card, CardHeader, CardBody, CardFooter, Input, Button } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
-import { securityApi, ActiveSession, TwoFactorAuthStatus } from '@/entities/security/api/securityApi';
+import { securityApi, ActiveSession } from '@/entities/security/api/securityApi';
 import { api } from '@/shared/api/api';
 
 // Define translations
@@ -20,12 +20,6 @@ const translations = {
     passwordsMismatch: "Passwords don't match",
     passwordRequirements: 'Use 8+ characters with a mix of letters, numbers & symbols',
     saveChanges: 'Save Changes',
-    twoFactorAuth: 'Two-Factor Authentication',
-    twoFactorDescription: 'Add an extra layer of security to your account by requiring a verification code in addition to your password.',
-    enable2fa: 'Enable Two-Factor Authentication',
-    disable2fa: 'Disable Two-Factor Authentication',
-    setupInstructions: 'To set up two-factor authentication, scan this QR code with your authentication app.',
-    backupCodes: 'Backup Codes',
     activeSessions: 'Active Sessions',
     sessionsDescription: 'These are the devices that are currently logged into your account.',
     device: 'Device',
@@ -45,7 +39,9 @@ const translations = {
       veryStrong: 'Very Strong'
     },
     failedToLoad: 'Failed to load security data. Please try again later.',
-    failedToTerminate: 'Failed to terminate session. Please try again.'
+    failedToTerminate: 'Failed to terminate session. Please try again.',
+    passwordChanged: 'Password changed successfully',
+    passwordChangeFailed: 'Failed to change password. Please try again.'
   },
   ru: {
     changePassword: 'Изменить пароль',
@@ -58,12 +54,6 @@ const translations = {
     passwordsMismatch: 'Пароли не совпадают',
     passwordRequirements: 'Используйте 8+ символов с комбинацией букв, цифр и специальных символов',
     saveChanges: 'Сохранить изменения',
-    twoFactorAuth: 'Двухфакторная аутентификация',
-    twoFactorDescription: 'Добавьте дополнительный уровень безопасности к вашей учетной записи, требуя код подтверждения в дополнение к паролю.',
-    enable2fa: 'Включить двухфакторную аутентификацию',
-    disable2fa: 'Отключить двухфакторную аутентификацию',
-    setupInstructions: 'Для настройки двухфакторной аутентификации, отсканируйте этот QR-код вашим приложением аутентификации.',
-    backupCodes: 'Резервные коды',
     activeSessions: 'Активные сессии',
     sessionsDescription: 'Эти устройства в настоящее время подключены к вашей учетной записи.',
     device: 'Устройство',
@@ -83,7 +73,9 @@ const translations = {
       veryStrong: 'Очень сильный'
     },
     failedToLoad: 'Не удалось загрузить данные безопасности. Пожалуйста, попробуйте позже.',
-    failedToTerminate: 'Не удалось завершить сессию. Пожалуйста, попробуйте снова.'
+    failedToTerminate: 'Не удалось завершить сессию. Пожалуйста, попробуйте снова.',
+    passwordChanged: 'Пароль успешно изменен',
+    passwordChangeFailed: 'Не удалось изменить пароль. Пожалуйста, попробуйте снова.'
   }
 };
 
@@ -93,9 +85,10 @@ interface SecuritySectionProps {
 
 export const SecuritySection = ({ locale }: SecuritySectionProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorAuthStatus | null>(null);
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -110,14 +103,6 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
       setIsLoading(true);
       
       try {
-        // Fetch two-factor status with fallback
-        const twoFactorData = await api.withFallback(
-          () => securityApi.getTwoFactorStatus(),
-          { enabled: false },
-          'Two-factor endpoint not available, using fallback data'
-        );
-        setTwoFactorStatus(twoFactorData);
-        
         // Fetch active sessions with fallback
         const sessionsData = await api.withFallback(
           () => securityApi.getActiveSessions(),
@@ -153,56 +138,38 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setSuccessMessage(null);
+    setErrorMessage(null);
     
     try {
-      await api.withFallback(
-        () => securityApi.changePassword({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        }),
-        { success: true },
-        'Password change endpoint not available, simulating success'
-      );
+      // Check if passwords match
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        setErrorMessage(t.passwordsMismatch);
+        setIsLoading(false);
+        return;
+      }
       
-      // Reset form after successful change
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+      // Call API to change password
+      const response = await securityApi.changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
       });
       
-      console.log('Password changed successfully');
-    } catch (error) {
-      console.error('Error changing password:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTwoFactorToggle = async () => {
-    if (!twoFactorStatus) return;
-    
-    setIsLoading(true);
-    
-    try {
-      if (twoFactorStatus.enabled) {
-        await api.withFallback(
-          () => securityApi.disableTwoFactor('123456'),
-          { success: true },
-          'Two-factor disable endpoint not available, simulating success'
-        );
-        setTwoFactorStatus({ ...twoFactorStatus, enabled: false });
-      } else {
-        await api.withFallback(
-          () => securityApi.enableTwoFactor(),
-          { secret: 'mock-secret', qrCodeUrl: 'mock-qr-code' },
-          'Two-factor enable endpoint not available, simulating setup'
-        );
+      if (response.success) {
+        // Reset form after successful change
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
         
-        setTwoFactorStatus({ ...twoFactorStatus, enabled: true });
+        setSuccessMessage(t.passwordChanged);
+      } else {
+        setErrorMessage(t.passwordChangeFailed);
       }
     } catch (error) {
-      console.error('Error toggling 2FA:', error);
+      console.error('Error changing password:', error);
+      setErrorMessage(t.passwordChangeFailed);
     } finally {
       setIsLoading(false);
     }
@@ -279,7 +246,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
   };
 
   // Loading state
-  if (isLoading && !twoFactorStatus && activeSessions.length === 0) {
+  if (isLoading && activeSessions.length === 0) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
@@ -295,6 +262,18 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
           <h2 className="text-xl font-semibold">{t.changePassword}</h2>
         </CardHeader>
         <CardBody>
+          {successMessage && (
+            <div className="mb-4 p-3 bg-success-50 text-success-700 dark:bg-success-900/20 dark:text-success-300 rounded-md">
+              {successMessage}
+            </div>
+          )}
+          
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-error-50 text-error-700 dark:bg-error-900/20 dark:text-error-300 rounded-md">
+              {errorMessage}
+            </div>
+          )}
+          
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <Input 
               label={t.currentPassword}
@@ -349,46 +328,6 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
             {t.saveChanges}
           </Button>
         </CardFooter>
-      </Card>
-
-      {/* Two-Factor Authentication */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">{t.twoFactorAuth}</h2>
-            <FiShield className="text-primary-500 w-5 h-5" />
-          </div>
-        </CardHeader>
-        <CardBody>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Enhance your account security</h3>
-              <p className="text-muted-foreground text-sm mt-1">
-                {t.twoFactorDescription}
-              </p>
-            </div>
-            
-            {twoFactorStatus && (
-              <Checkbox
-                checked={twoFactorStatus.enabled}
-                onChange={handleTwoFactorToggle}
-                disabled={isLoading}
-              />
-            )}
-          </div>
-          
-          {twoFactorStatus?.enabled && (
-            <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-md border border-primary-200 dark:border-primary-800">
-              <div className="flex items-center">
-                <FiSmartphone className="text-primary-500 w-5 h-5 mr-2" />
-                <span className="font-medium">Two-factor authentication is enabled</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Your account is now more secure with an additional layer of protection
-              </p>
-            </div>
-          )}
-        </CardBody>
       </Card>
 
       {/* Active Sessions */}
