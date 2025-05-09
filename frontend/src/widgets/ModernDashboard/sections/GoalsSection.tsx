@@ -35,9 +35,10 @@ interface GoalsSectionProps {
     complete: string;
     viewMore: string;
   };
+  onCreateGoal?: () => void;
 }
 
-export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
+export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t, onCreateGoal }) => {
   const { goals, isLoading, hasErrors } = useDashboardData();
   
   // Helper to safely get current amount from a goal
@@ -110,6 +111,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
             variant="outline" 
             className="inline-flex items-center gap-1"
             leftIcon={<Plus size={16} />}
+            onClick={onCreateGoal}
           >
             {t.createGoal}
           </Button>

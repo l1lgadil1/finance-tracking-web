@@ -91,8 +91,6 @@ export const AnalyticsSection: FC<AnalyticsSectionProps> = ({ locale }) => {
     });
   }, [transactions.data]);
 
-  const selectedPeriod = t.month; // Default selected period
-  
   // Calculate highest, lowest, average values
   const stats = useMemo(() => {
     if (chartData.length === 0) return { highest: 0, lowest: 0, average: 0 };
@@ -100,12 +98,26 @@ export const AnalyticsSection: FC<AnalyticsSectionProps> = ({ locale }) => {
     const incomeValues = chartData.map(item => item.income);
     const expenseValues = chartData.map(item => item.expenses);
     
-    const highest = Math.max(...incomeValues, ...expenseValues);
-    const lowest = Math.min(...incomeValues.filter(v => v > 0), ...expenseValues.filter(v => v > 0)) || 0;
+    // Get only positive values for better stats calculation
+    const positiveIncomeValues = incomeValues.filter(v => v > 0);
+    const positiveExpenseValues = expenseValues.filter(v => v > 0);
+    
+    // If there are no positive values, default to 0
+    const highest = Math.max(...incomeValues, ...expenseValues, 0);
+    
+    // Handle case when there are no positive values to find minimum
+    let lowest = 0;
+    if (positiveIncomeValues.length > 0 || positiveExpenseValues.length > 0) {
+      const allPositiveValues = [...positiveIncomeValues, ...positiveExpenseValues];
+      lowest = allPositiveValues.length > 0 ? Math.min(...allPositiveValues) : 0;
+    }
     
     const incomeSum = incomeValues.reduce((sum, val) => sum + val, 0);
     const expenseSum = expenseValues.reduce((sum, val) => sum + val, 0);
-    const average = (incomeSum + expenseSum) / (chartData.length * 2);
+    
+    // Calculate average only if there's actual data
+    const totalEntries = incomeValues.length + expenseValues.length;
+    const average = totalEntries > 0 ? (incomeSum + expenseSum) / totalEntries : 0;
     
     return { highest, lowest, average };
   }, [chartData]);
@@ -149,11 +161,11 @@ export const AnalyticsSection: FC<AnalyticsSectionProps> = ({ locale }) => {
         <h2 className="text-xl font-semibold">{t.incomeVsExpenses}</h2>
         
         <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-          <Badge variant="outline" className="cursor-pointer font-medium">{t.today}</Badge>
-          <Badge variant="outline" className="cursor-pointer font-medium">{t.week}</Badge>
+          <Badge variant="secondary" className="cursor-pointer font-medium">{t.today}</Badge>
+          <Badge variant="secondary" className="cursor-pointer font-medium">{t.week}</Badge>
           <Badge variant="primary" className="cursor-pointer font-medium">{t.month}</Badge>
-          <Badge variant="outline" className="cursor-pointer font-medium">{t.quarter}</Badge>
-          <Badge variant="outline" className="cursor-pointer font-medium">{t.year}</Badge>
+          <Badge variant="secondary" className="cursor-pointer font-medium">{t.quarter}</Badge>
+          <Badge variant="secondary" className="cursor-pointer font-medium">{t.year}</Badge>
         </div>
       </CardHeader>
       

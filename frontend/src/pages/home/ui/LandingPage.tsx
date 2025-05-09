@@ -401,10 +401,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
     router.push(`/${locale}/auth/login`);
   };
 
-  const handleDashboardClick = () => {
-    router.push(`/${locale}/dashboard`);
-  };
-
   return (
     <main className="flex min-h-screen flex-col items-center">
       {/* Navigation */}

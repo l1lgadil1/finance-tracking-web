@@ -12,16 +12,11 @@ import {
   Button, DatePicker, FinancialSummaryCard
 } from '@/shared/ui';
 import { motion } from 'framer-motion';
-import { Locale } from '@/shared/lib/i18n';
 import { useDashboardData } from '@/widgets/DashboardContainer/providers/DashboardDataProvider';
-import { ChartPeriod, TransactionType } from '@/shared/constants/finance';
+import { ChartPeriod, TransactionType, CHART_COLORS } from '@/shared/constants/finance';
 import { FiCheckCircle } from 'react-icons/fi';
+import { useParams } from 'next/navigation';
 
-interface AnalyticsPageProps {
-  params: {
-    locale: Locale;
-  };
-}
 
 // Translation dictionary
 const translations = {
@@ -47,7 +42,8 @@ const translations = {
     expenses: 'Expenses',
     categories: {
       title: 'Expense by Category',
-      noData: 'No category data available'
+      noData: 'No category data available',
+      uncategorized: 'Uncategorized'
     },
     trends: {
       title: 'Financial Trends',
@@ -58,14 +54,31 @@ const translations = {
       spendingPatterns: 'Spending Patterns',
       savingOpportunities: 'Saving Opportunities',
       budgetAlerts: 'Budget Alerts',
-      financialHealth: 'Financial Health'
+      financialHealth: 'Financial Health',
+      noData: 'No AI insights available at this time.',
+      financialTips: 'Financial Tips'
     },
     dateRange: 'Date Range',
     from: 'From',
     to: 'To',
     loading: 'Loading analytics data...',
     noData: 'No data available for the selected period',
-    error: 'Failed to load analytics data'
+    error: 'Failed to load analytics data',
+    currency: '$',
+    months: {
+      jan: 'Jan',
+      feb: 'Feb',
+      mar: 'Mar',
+      apr: 'Apr',
+      may: 'May',
+      jun: 'Jun',
+      jul: 'Jul',
+      aug: 'Aug',
+      sep: 'Sep',
+      oct: 'Oct',
+      nov: 'Nov',
+      dec: 'Dec'
+    }
   },
   ru: {
     pageTitle: 'Финансовая аналитика',
@@ -89,7 +102,8 @@ const translations = {
     expenses: 'Расходы',
     categories: {
       title: 'Расходы по категориям',
-      noData: 'Нет данных по категориям'
+      noData: 'Нет данных по категориям',
+      uncategorized: 'Без категории'
     },
     trends: {
       title: 'Финансовые тренды',
@@ -100,23 +114,40 @@ const translations = {
       spendingPatterns: 'Схемы расходов',
       savingOpportunities: 'Возможности экономии',
       budgetAlerts: 'Предупреждения о бюджете',
-      financialHealth: 'Финансовое здоровье'
+      financialHealth: 'Финансовое здоровье',
+      noData: 'В настоящий момент нет данных AI аналитики.',
+      financialTips: 'Финансовые советы'
     },
     dateRange: 'Период',
     from: 'С',
     to: 'По',
     loading: 'Загрузка данных аналитики...',
     noData: 'Нет данных за выбранный период',
-    error: 'Ошибка загрузки данных аналитики'
+    error: 'Ошибка загрузки данных аналитики',
+    currency: '₽',
+    months: {
+      jan: 'Янв',
+      feb: 'Фев',
+      mar: 'Мар',
+      apr: 'Апр',
+      may: 'Май',
+      jun: 'Июн',
+      jul: 'Июл',
+      aug: 'Авг',
+      sep: 'Сен',
+      oct: 'Окт',
+      nov: 'Ноя',
+      dec: 'Дек'
+    }
   }
 };
 
 // Type for custom period
 type ExtendedChartPeriod = ChartPeriod | 'custom';
 
-export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
-  const { locale } = params;
-  const t = translations[locale] || translations.en;
+export const AnalyticsPage = () => {
+  const { locale } = useParams();
+  const t = translations[locale as keyof typeof translations] || translations.en;
   const { theme } = useTheme();
   const { transactions, aiRecommendations } = useDashboardData();
   
@@ -149,6 +180,106 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
     return result;
   }, [transactions.data]);
 
+  // Calculate percentage change for financial metrics
+  const calculateChangeData = useMemo(() => {
+    if (!transactions.data) return { income: '0%', expenses: '0%', balance: '0%' };
+    
+    // Get current and previous period date ranges
+    const now = new Date();
+    const currentPeriodStart = new Date();
+    const previousPeriodStart = new Date();
+    const previousPeriodEnd = new Date();
+    
+    switch(period) {
+      case 'daily' as ExtendedChartPeriod:
+        currentPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodStart.setDate(previousPeriodStart.getDate() - 1);
+        previousPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodEnd.setDate(previousPeriodEnd.getDate() - 1);
+        previousPeriodEnd.setHours(23, 59, 59, 999);
+        break;
+      case ChartPeriod.WEEKLY:
+        // Start from this week's Sunday (or Monday depending on preference)
+        const dayOfWeek = now.getDay();
+        const diff = now.getDate() - dayOfWeek;
+        currentPeriodStart.setDate(diff);
+        currentPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodStart.setDate(diff - 7);
+        previousPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodEnd.setDate(diff - 1);
+        previousPeriodEnd.setHours(23, 59, 59, 999);
+        break;
+      case ChartPeriod.MONTHLY:
+        currentPeriodStart.setDate(1);
+        currentPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodStart.setMonth(previousPeriodStart.getMonth() - 1);
+        previousPeriodStart.setDate(1);
+        previousPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodEnd.setDate(0);
+        previousPeriodEnd.setHours(23, 59, 59, 999);
+        break;
+      case ChartPeriod.YEARLY:
+        currentPeriodStart.setMonth(0, 1);
+        currentPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodStart.setFullYear(previousPeriodStart.getFullYear() - 1);
+        previousPeriodStart.setMonth(0, 1);
+        previousPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodEnd.setFullYear(previousPeriodEnd.getFullYear() - 1);
+        previousPeriodEnd.setMonth(11, 31);
+        previousPeriodEnd.setHours(23, 59, 59, 999);
+        break;
+      default:
+        // Default to monthly if custom or unknown
+        currentPeriodStart.setDate(1);
+        currentPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodStart.setMonth(previousPeriodStart.getMonth() - 1);
+        previousPeriodStart.setDate(1);
+        previousPeriodStart.setHours(0, 0, 0, 0);
+        previousPeriodEnd.setDate(0);
+        previousPeriodEnd.setHours(23, 59, 59, 999);
+    }
+    
+    // Current period transactions
+    const currentTransactions = transactions.data.filter(t => {
+      const date = new Date(t.date);
+      return date >= currentPeriodStart && date <= now;
+    });
+    
+    // Previous period transactions
+    const previousTransactions = transactions.data.filter(t => {
+      const date = new Date(t.date);
+      return date >= previousPeriodStart && date <= previousPeriodEnd;
+    });
+    
+    // Calculate totals for both periods
+    const currentPeriod = currentTransactions.reduce((acc, t) => {
+      if (t.type === TransactionType.INCOME) acc.income += t.amount;
+      else if (t.type === TransactionType.EXPENSE) acc.expenses += t.amount;
+      return acc;
+    }, { income: 0, expenses: 0, balance: 0 });
+    currentPeriod.balance = currentPeriod.income - currentPeriod.expenses;
+    
+    const previousPeriod = previousTransactions.reduce((acc, t) => {
+      if (t.type === TransactionType.INCOME) acc.income += t.amount;
+      else if (t.type === TransactionType.EXPENSE) acc.expenses += t.amount;
+      return acc;
+    }, { income: 0, expenses: 0, balance: 0 });
+    previousPeriod.balance = previousPeriod.income - previousPeriod.expenses;
+    
+    // Calculate percentage changes
+    const calculatePercentage = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? '+100%' : '0%';
+      const change = ((current - previous) / Math.abs(previous)) * 100;
+      return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+    };
+    
+    return {
+      income: calculatePercentage(currentPeriod.income, previousPeriod.income),
+      expenses: calculatePercentage(currentPeriod.expenses, previousPeriod.expenses),
+      balance: calculatePercentage(currentPeriod.balance, previousPeriod.balance)
+    };
+  }, [transactions.data, period]);
+
   // Calculate category data for pie chart
   const categoryData = useMemo(() => {
     if (!transactions.data) return [];
@@ -161,7 +292,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
     // Group by category and sum amounts
     const categoryMap = expenseTransactions.reduce((acc, transaction) => {
       const categoryId = transaction.categoryId;
-      const categoryName = transaction.category?.name || 'Uncategorized';
+      const categoryName = transaction.category?.name || t.categories.uncategorized;
       
       if (!acc[categoryId]) {
         // Safely assign a color from CHART_COLORS or use a default color
@@ -182,7 +313,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
     }, {} as Record<string, {id: string, name: string, value: number, color: string}>);
     
     return Object.values(categoryMap);
-  }, [transactions.data]);
+  }, [transactions.data, t.categories.uncategorized]);
 
   // Calculate trend data for line chart
   const trendData = useMemo(() => {
@@ -193,8 +324,10 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     
     // Create a map of month names
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      t.months.jan, t.months.feb, t.months.mar, t.months.apr, t.months.may, t.months.jun, 
+      t.months.jul, t.months.aug, t.months.sep, t.months.oct, t.months.nov, t.months.dec
+    ];
     
     // Initialize data array with last 6 months
     const monthlyData: Record<string, {month: string, income: number, expenses: number}> = {};
@@ -232,7 +365,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
     
     // Convert to array and sort by date
     return Object.values(monthlyData).reverse();
-  }, [transactions.data]);
+  }, [transactions.data, t.months]);
 
   // Toggle custom date range selection
   const handlePeriodChange = (newPeriod: ChartPeriod) => {
@@ -323,21 +456,21 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
         <FinancialSummaryCard
           title={t.overview.totalIncome}
           value={summaryData.totalIncome}
-          change={{ value: '+5.2%', positive: true }}
+          change={{ value: calculateChangeData.income, positive: !calculateChangeData.income.startsWith('-') }}
           icon={<DollarSign className="w-5 h-5" />}
           className="bg-card"
         />
         <FinancialSummaryCard
           title={t.overview.totalExpenses}
           value={summaryData.totalExpenses}
-          change={{ value: '-2.1%', positive: false }}
+          change={{ value: calculateChangeData.expenses, positive: calculateChangeData.expenses.startsWith('-') }}
           icon={<ArrowUpDown className="w-5 h-5" />}
           className="bg-card"
         />
         <FinancialSummaryCard
           title={t.overview.netBalance}
           value={summaryData.netBalance}
-          change={{ value: '+3.8%', positive: summaryData.netBalance >= 0 }}
+          change={{ value: calculateChangeData.balance, positive: !calculateChangeData.balance.startsWith('-') }}
           icon={<DollarSign className="w-5 h-5" />}
           className="bg-card"
         />
@@ -362,8 +495,8 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
                   <YAxis tick={{ fill: textColor }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="income" name={t.income} fill="#4CAF50" />
-                  <Bar dataKey="expenses" name={t.expenses} fill="#F44336" />
+                  <Bar dataKey="income" name={t.income} fill={CHART_COLORS.INCOME} />
+                  <Bar dataKey="expenses" name={t.expenses} fill={CHART_COLORS.EXPENSE} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -396,7 +529,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => [`$${value}`, '']} />
+                      <Tooltip formatter={(value) => [`${t.currency}${value}`, '']} />
                     </PieChart>
                   </ResponsiveContainer>
                   
@@ -410,7 +543,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
                           />
                           <span className="text-sm truncate mr-1">{category.name}</span>
                           <span className="text-sm text-muted-foreground ml-auto">
-                            ${category.value.toFixed(0)}
+                            {t.currency}{category.value.toFixed(0)}
                           </span>
                         </div>
                       ))}
@@ -453,7 +586,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
                     type="monotone" 
                     dataKey="income" 
                     name={t.income}
-                    stroke="#4CAF50" 
+                    stroke={CHART_COLORS.INCOME} 
                     activeDot={{ r: 8 }}
                     strokeWidth={2}
                   />
@@ -461,7 +594,7 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
                     type="monotone" 
                     dataKey="expenses" 
                     name={t.expenses}
-                    stroke="#F44336"
+                    stroke={CHART_COLORS.EXPENSE}
                     strokeWidth={2}
                   />
                 </LineChart>
@@ -507,13 +640,13 @@ export const AnalyticsPage = ({ params }: AnalyticsPageProps) => {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No AI insights available at this time.
+              {t.insights.noData}
             </div>
           )}
           
           {aiRecommendations.data && aiRecommendations.data.tips && aiRecommendations.data.tips.length > 0 && (
             <div className="mt-6 bg-muted/30 p-4 rounded-lg">
-              <h3 className="font-medium mb-3">Financial Tips</h3>
+              <h3 className="font-medium mb-3">{t.insights.financialTips}</h3>
               <ul className="space-y-2">
                 {aiRecommendations.data.tips.map((tip, index) => (
                   <li key={index} className="flex items-start">

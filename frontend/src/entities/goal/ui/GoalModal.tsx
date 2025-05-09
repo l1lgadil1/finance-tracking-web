@@ -10,6 +10,7 @@ interface GoalModalProps {
   isOpen: boolean;
   onClose: () => void;
   locale: Locale;
+  onSuccess?: () => void;
 }
 
 // Form values interface
@@ -61,7 +62,8 @@ const translations = {
 export const GoalModal: React.FC<GoalModalProps> = ({
   isOpen,
   onClose,
-  locale
+  locale,
+  onSuccess
 }) => {
   const t = translations[locale] || translations.en;
   const { createGoal, isSubmitting, isSubmitError, isSubmitSuccess, submitError, resetSubmit } = useGoalModal();
@@ -85,11 +87,14 @@ export const GoalModal: React.FC<GoalModalProps> = ({
 
   useEffect(() => {
     if (isSubmitSuccess) {
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
       resetSubmit();
       reset();
     }
-  }, [isSubmitSuccess, onClose, resetSubmit, reset]);
+  }, [isSubmitSuccess, onClose, resetSubmit, reset, onSuccess]);
 
   // Format today's date as YYYY-MM-DD for the date input min value
   const today = new Date().toISOString().split('T')[0];
@@ -126,7 +131,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         <Input
           label={t.target}
           type="number"
-          step="0.01"
+          // step="0.01"
           fullWidth
           error={errors.target?.message}
           {...register('target', { 
@@ -139,7 +144,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         <Input
           label={t.current}
           type="number"
-          step="0.01"
+          // step="0.01"
           fullWidth
           error={errors.current?.message}
           {...register('current', { 

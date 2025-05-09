@@ -1,7 +1,8 @@
 import { FC } from 'react';
 import Link from 'next/link';
-import { RiHome5Line, RiWallet3Line, RiPieChartLine, RiExchangeDollarLine, RiSettings4Line } from 'react-icons/ri';
+import { RiHome5Line, RiWallet3Line, RiPieChartLine, RiExchangeDollarLine, RiSettings4Line, RiBarChartBoxLine } from 'react-icons/ri';
 import { IconType } from 'react-icons';
+import { Locale } from '@/lib/i18n';
 
 interface SidebarProps {
   locale: string;
@@ -11,18 +12,47 @@ interface SidebarProps {
 interface NavigationItem {
   icon: IconType;
   label: string;
+  translationKey: 'home' | 'accounts' | 'analytics' | 'transactions' | 'goals' | 'settings';
   href: string;
 }
 
+// Sidebar translations
+const sidebarTranslations = {
+  en: {
+    navigation: {
+      home: 'Home',
+      accounts: 'Accounts',
+      analytics: 'Analytics',
+      transactions: 'Transactions',
+      goals: 'Goals',
+      settings: 'Settings'
+    }
+  },
+  ru: {
+    navigation: {
+      home: 'Главная',
+      accounts: 'Счета',
+      analytics: 'Аналитика',
+      transactions: 'Транзакции',
+      goals: 'Цели',
+      settings: 'Настройки'
+    }
+  }
+};
+
 const navigationItems: NavigationItem[] = [
-  { icon: RiHome5Line, label: 'Home', href: '/dashboard' },
-  { icon: RiWallet3Line, label: 'Accounts', href: '/dashboard/accounts' },
-  { icon: RiPieChartLine, label: 'Analytics', href: '/dashboard/analytics' },
-  { icon: RiExchangeDollarLine, label: 'Transactions', href: '/dashboard/transactions' },
-  { icon: RiSettings4Line, label: 'Settings', href: '/dashboard/settings' },
+  { icon: RiHome5Line, label: 'Home', translationKey: 'home', href: '/dashboard' },
+  { icon: RiWallet3Line, label: 'Accounts', translationKey: 'accounts', href: '/dashboard/accounts' },
+  { icon: RiPieChartLine, label: 'Analytics', translationKey: 'analytics', href: '/dashboard/analytics' },
+  { icon: RiExchangeDollarLine, label: 'Transactions', translationKey: 'transactions', href: '/dashboard/transactions' },
+  { icon: RiBarChartBoxLine, label: 'Goals', translationKey: 'goals', href: '/dashboard/goals' },
+  { icon: RiSettings4Line, label: 'Settings', translationKey: 'settings', href: '/dashboard/settings' },
 ];
 
 export const Sidebar: FC<SidebarProps> = ({ locale, activeHref }) => {
+  // Get the translations for the current locale
+  const t = sidebarTranslations[locale as Locale]?.navigation || sidebarTranslations.en.navigation;
+
   return (
     <aside className="w-64 bg-card border-r border-border transition-colors h-full duration-200" role="navigation" aria-label="Main Navigation">
       {/* Logo */}
@@ -60,7 +90,7 @@ export const Sidebar: FC<SidebarProps> = ({ locale, activeHref }) => {
                   role="menuitem"
                 >
                   <Icon className="text-xl flex-shrink-0" aria-hidden="true" />
-                  <span>{item.label}</span>
+                  <span>{t[item.translationKey]}</span>
                 </Link>
               </li>
             );

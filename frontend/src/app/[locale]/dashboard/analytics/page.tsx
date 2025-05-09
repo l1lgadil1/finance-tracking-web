@@ -11,7 +11,7 @@ interface PageProps {
 export default function Page({ params }: PageProps) {
   return (
     <DashboardDataProvider locale={params.locale}>
-      <AnalyticsPage params={params} />
+      <AnalyticsPage  />
     </DashboardDataProvider>
   );
 } 

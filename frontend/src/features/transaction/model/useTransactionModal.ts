@@ -99,6 +99,7 @@ export function useTransactionModal() {
     mutationFn: transactionApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 
@@ -108,6 +109,7 @@ export function useTransactionModal() {
       transactionApi.update(data.id, data.transaction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 

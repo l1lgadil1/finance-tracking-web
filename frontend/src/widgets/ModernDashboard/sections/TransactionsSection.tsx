@@ -8,6 +8,19 @@ import { useDashboardData } from '@/widgets/DashboardContainer/providers/Dashboa
 import { Account } from '@/entities/account/api/accountApi';
 import Link from 'next/link';
 
+const transactionSectionTranslations = {
+  en: {
+    allAccounts: 'All Accounts',
+    noTransactionsFound: 'No transactions found',
+    loadingTransactions: 'Loading transactions...'
+  },
+  ru: {
+    allAccounts: 'Все счета',
+    noTransactionsFound: 'Транзакции не найдены',
+    loadingTransactions: 'Загрузка транзакций...'
+  }
+};
+
 interface TransactionsSectionProps {
   locale: Locale; 
   t: {
@@ -27,6 +40,7 @@ type ValidTransactionType = 'income' | 'expense' | 'transfer' | 'debt_give' | 'd
 export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t }) => {
   const { transactions, accounts } = useDashboardData();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const tSection = transactionSectionTranslations[locale as Locale] || transactionSectionTranslations.en;
 
   // Filter transactions by selected account
   const filteredTransactions = selectedAccountId
@@ -48,7 +62,7 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
         <CardBody>
           <div className="flex justify-center items-center p-8" aria-live="polite" aria-busy="true">
             <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin" role="progressbar"></div>
-            <span className="sr-only">Loading transactions...</span>
+            <span className="sr-only">{tSection.loadingTransactions}</span>
           </div>
         </CardBody>
       </Card>
@@ -113,7 +127,7 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
               onClick={() => setSelectedAccountId(null)}
               aria-pressed={!selectedAccountId}
             >
-              All Accounts
+              {tSection.allAccounts}
             </button>
             
             {accounts.data.map((account) => (
@@ -164,7 +178,7 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
         {/* Empty state */}
         {recentTransactions.length === 0 && (
           <div className="p-8 text-center">
-            <p className="text-muted-foreground">No transactions found</p>
+            <p className="text-muted-foreground">{tSection.noTransactionsFound}</p>
           </div>
         )}
         
@@ -175,23 +189,22 @@ export const TransactionsSection: FC<TransactionsSectionProps> = ({ locale, t })
               const accountName = findAccount(transaction.accountId)?.name || 'Unknown Account';
               
               return (
-                <motion.div
-                  key={transaction.id}
-                  whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.05)" }}
-                  transition={{ duration: 0.2 }}
-                  className="p-2 bg-card hover:bg-card-hover transition-colors"
-                >
-                  <TransactionCard
-                    id={transaction.id}
-                    description={transaction.description || 'Transaction'}
-                    amount={transaction.amount}
-                    date={new Date(transaction.date)}
-                    category={transaction.category?.name || 'Uncategorized'}
-                    type={mapTransactionType(transaction.type)}
-                    account={accountName}
-                    onClick={() => console.log(`Transaction ${transaction.id} clicked`)}
-                  />
-                </motion.div>
+                  <motion.div
+                      key={transaction.id}
+                      whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
+                      transition={{ duration: 0.2 }}
+                      className="p-2 bg-card hover:bg-card-hover transition-colors">
+                      <TransactionCard
+                          id={transaction.id}
+                          description={transaction.description || 'Transaction'}
+                          amount={transaction.amount}
+                          date={new Date(transaction.date)}
+                          category={transaction?.categoryName || 'Uncategorized'}
+                          type={mapTransactionType(transaction.type)}
+                          account={accountName}
+                          onClick={() => console.log(`Transaction ${transaction.id} clicked`)}
+                      />
+                  </motion.div>
               );
             })}
           </div>

@@ -8,6 +8,7 @@ export interface Transaction {
   amount: number;
   description: string;
   date: string;
+  categoryName?:string
   accountId: string;
   categoryId: string;
   profileId: string;
