@@ -7,6 +7,24 @@ import { FiGlobe, FiCheck } from 'react-icons/fi';
 import { Card, CardHeader, CardBody } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 
+// Define translations
+const translations = {
+  en: {
+    language: 'Language',
+    chooseLanguage: 'Choose the language you want to use in AqshaTracker.',
+    languageInfo: 'Language Information',
+    currentlySupported: 'AqshaTracker currently supports English and Russian languages.',
+    workingOnAdding: 'We\'re working on adding more language options in the future. Your selection will be saved and applied across all of your devices.'
+  },
+  ru: {
+    language: 'Язык',
+    chooseLanguage: 'Выберите язык, который вы хотите использовать в AqshaTracker.',
+    languageInfo: 'Информация о языках',
+    currentlySupported: 'В настоящее время AqshaTracker поддерживает английский и русский языки.',
+    workingOnAdding: 'Мы работаем над добавлением большего количества языковых опций в будущем. Ваш выбор будет сохранен и применен на всех ваших устройствах.'
+  }
+};
+
 interface LanguageSectionProps {
   locale: Locale;
 }
@@ -21,6 +39,7 @@ type LanguageOption = {
 export const LanguageSection = ({ locale }: LanguageSectionProps) => {
   const router = useRouter();
   const [selectedLocale, setSelectedLocale] = useState<Locale>(locale);
+  const t = translations[locale];
 
   const languageOptions: LanguageOption[] = [
     {
@@ -51,11 +70,11 @@ export const LanguageSection = ({ locale }: LanguageSectionProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-xl font-semibold">Language</h2>
+        <h2 className="text-xl font-semibold">{t.language}</h2>
       </CardHeader>
       <CardBody>
         <p className="text-muted-foreground mb-6">
-          Choose the language you want to use in AqshaTracker.
+          {t.chooseLanguage}
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,13 +117,13 @@ export const LanguageSection = ({ locale }: LanguageSectionProps) => {
         <div className="mt-8 p-4 rounded-lg border border-border">
           <div className="flex items-center text-muted-foreground mb-2">
             <FiGlobe className="mr-2" />
-            <h3 className="font-medium">Language Information</h3>
+            <h3 className="font-medium">{t.languageInfo}</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-2">
-            AqshaTracker currently supports English and Russian languages.
+            {t.currentlySupported}
           </p>
           <p className="text-sm text-muted-foreground">
-            We&apos;re working on adding more language options in the future. Your selection will be saved and applied across all of your devices.
+            {t.workingOnAdding}
           </p>
         </div>
       </CardBody>

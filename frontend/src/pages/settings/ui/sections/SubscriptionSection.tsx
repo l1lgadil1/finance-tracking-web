@@ -1,10 +1,128 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FiCheckCircle, FiCreditCard, FiList } from 'react-icons/fi';
+import { FiCheckCircle } from 'react-icons/fi';
 import { Card, CardHeader, CardBody, CardFooter, Button, Badge } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
-import { subscriptionApi, Subscription, BillingHistory } from '@/entities/subscription/api/subscriptionApi';
+import { Subscription } from '@/entities/subscription/api/subscriptionApi';
+
+// Define translations
+const translations = {
+  en: {
+    yourSubscription: 'Your Subscription',
+    availablePlans: 'Available Plans',
+    billingHistory: 'Billing History',
+    current: 'Current',
+    active: 'Active',
+    nextBilling: 'Next billing on',
+    planFeatures: 'Plan Features',
+    cancelSubscription: 'Cancel Subscription',
+    choosePlan: 'Choose the plan that works best for your needs.',
+    currentPlan: 'Current Plan',
+    upgradeTo: 'Upgrade to',
+    mostPopular: 'Most Popular',
+    invoice: 'Invoice',
+    date: 'Date',
+    amount: 'Amount', 
+    status: 'Status',
+    download: 'Download',
+    error: 'Error',
+    failedToLoad: 'Failed to load subscription data. Please try again later.',
+    plan: 'Plan',
+    planSuffix: 'Plan',
+    free: {
+      name: 'Free',
+      description: 'Basic features for personal use',
+      features: [
+        'Up to 3 accounts',
+        'Up to 100 transactions per month',
+        'Basic reporting',
+        'Email support'
+      ]
+    },
+    pro: {
+      name: 'Pro',
+      description: 'Advanced features for power users',
+      features: [
+        'Unlimited accounts',
+        'Unlimited transactions',
+        'Advanced analytics',
+        'CSV/JSON export',
+        'Priority support',
+        'Custom categories'
+      ]
+    },
+    business: {
+      name: 'Business',
+      description: 'Enterprise solutions for teams',
+      features: [
+        'Everything in Pro',
+        'Team collaboration',
+        'Role-based permissions',
+        'API access',
+        'Dedicated support',
+        'Custom branding'
+      ]
+    }
+  },
+  ru: {
+    yourSubscription: 'Ваша подписка',
+    availablePlans: 'Доступные планы',
+    billingHistory: 'История платежей',
+    current: 'Текущий',
+    active: 'Активный',
+    nextBilling: 'Следующий платеж',
+    planFeatures: 'Возможности плана',
+    cancelSubscription: 'Отменить подписку',
+    choosePlan: 'Выберите план, который лучше всего соответствует вашим потребностям.',
+    currentPlan: 'Текущий план',
+    upgradeTo: 'Обновить до',
+    mostPopular: 'Самый популярный',
+    invoice: 'Счет',
+    date: 'Дата',
+    amount: 'Сумма',
+    status: 'Статус',
+    download: 'Скачать',
+    error: 'Ошибка',
+    failedToLoad: 'Не удалось загрузить данные подписки. Пожалуйста, попробуйте позже.',
+    plan: 'План',
+    planSuffix: '',
+    free: {
+      name: 'Бесплатный',
+      description: 'Базовые функции для личного использования',
+      features: [
+        'До 3 счетов',
+        'До 100 транзакций в месяц',
+        'Базовая отчетность',
+        'Поддержка по электронной почте'
+      ]
+    },
+    pro: {
+      name: 'Про',
+      description: 'Расширенные функции для опытных пользователей',
+      features: [
+        'Неограниченное количество счетов',
+        'Неограниченное количество транзакций',
+        'Расширенная аналитика',
+        'Экспорт в CSV/JSON',
+        'Приоритетная поддержка',
+        'Пользовательские категории'
+      ]
+    },
+    business: {
+      name: 'Бизнес',
+      description: 'Корпоративные решения для команд',
+      features: [
+        'Все из тарифа Про',
+        'Командное сотрудничество',
+        'Ролевые разрешения',
+        'Доступ к API',
+        'Выделенная поддержка',
+        'Собственный брендинг'
+      ]
+    }
+  }
+};
 
 interface SubscriptionSectionProps {
   locale: Locale;
@@ -22,97 +140,43 @@ type Plan = {
 };
 
 export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
+  const t = translations[locale];
+  
   // State for subscription data
   const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
   const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
-  const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
   const [isChangingPlan, setIsChangingPlan] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Fetch subscription data
   useEffect(() => {
-    const fetchSubscriptionData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Fetch current subscription if user is subscribed
-        try {
-          const subscription = await subscriptionApi.getCurrentSubscription();
-          setCurrentSubscription(subscription);
-        } catch (err) {
-          console.warn('Current subscription endpoint not available or no active subscription');
-          // It's okay if there's no subscription yet
-        }
-        
-        // Fetch available plans
-        try {
-          const plans = await subscriptionApi.getAvailablePlans();
-          setAvailablePlans(plans.map(plan => ({
-            ...plan,
-            isCurrentPlan: currentSubscription?.planId === plan.id
-          })));
-        } catch (err) {
-          console.warn('Available plans endpoint not available, using fallback data');
-          // We'll use the default plans defined in the component
-        }
-        
-        // Fetch billing history if user has a subscription
-        if (currentSubscription) {
-          try {
-            const history = await subscriptionApi.getBillingHistory();
-            setBillingHistory(history);
-          } catch (err) {
-            console.warn('Billing history endpoint not available');
-            // Just continue without billing history
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching subscription data:', err);
-        setError('Failed to load subscription data. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // Simulate API data loading with a timeout
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      setAvailablePlans([]);
+    }, 800);
     
-    fetchSubscriptionData();
-  }, [currentSubscription?.planId]);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChangePlan = async (planId: string) => {
     setIsChangingPlan(true);
     
-    try {
-      // If user already has a subscription, cancel it first
-      if (currentSubscription) {
-        try {
-          await subscriptionApi.cancelSubscription(currentSubscription.id);
-        } catch (err) {
-          console.warn('Cancel subscription endpoint not available');
-          // Continue anyway for demo purposes
-        }
-      }
+    // Simulate processing
+    setTimeout(() => {
+      const mockSubscription: Subscription = {
+        id: `sub-${Math.random().toString(36).substr(2, 9)}`,
+        userId: 'current-user',
+        planId: planId,
+        planNameSnapshot: allPlans.find(p => p.id === planId)?.name || 'Unknown Plan',
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days later
+        status: 'active',
+        autoRenew: true,
+        price: allPlans.find(p => p.id === planId)?.price || 0
+      };
       
-      // Subscribe to new plan
-      try {
-        const newSubscription = await subscriptionApi.subscribe(planId);
-        setCurrentSubscription(newSubscription);
-      } catch (err) {
-        console.warn('Subscribe endpoint not available');
-        // Create mock subscription for demo purposes
-        const mockSubscription: Subscription = {
-          id: `sub-${Math.random().toString(36).substr(2, 9)}`,
-          userId: 'current-user',
-          planId: planId,
-          planNameSnapshot: allPlans.find(p => p.id === planId)?.name || 'Unknown Plan',
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days later
-          status: 'active',
-          autoRenew: true,
-          price: allPlans.find(p => p.id === planId)?.price || 0
-        };
-        setCurrentSubscription(mockSubscription);
-      }
+      setCurrentSubscription(mockSubscription);
       
       // Update plan status
       setAvailablePlans(prevPlans => 
@@ -121,25 +185,16 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
           isCurrentPlan: plan.id === planId
         }))
       );
-    } catch (err) {
-      console.error('Error changing subscription plan:', err);
-      setError('Failed to change subscription plan. Please try again later.');
-    } finally {
+      
       setIsChangingPlan(false);
-    }
+    }, 1500);
   };
 
   const handleCancelSubscription = async () => {
     if (!currentSubscription) return;
     
-    try {
-      try {
-        await subscriptionApi.cancelSubscription(currentSubscription.id);
-      } catch (err) {
-        console.warn('Cancel subscription endpoint not available');
-        // Continue anyway for demo purposes
-      }
-      
+    // Simulate processing
+    setTimeout(() => {
       setCurrentSubscription(null);
       
       // Reset current plan status
@@ -149,10 +204,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
           isCurrentPlan: false
         }))
       );
-    } catch (err) {
-      console.error('Error cancelling subscription:', err);
-      setError('Failed to cancel subscription. Please try again later.');
-    }
+    }, 1000);
   };
 
   const formatCurrency = (amount: number) => {
@@ -161,7 +213,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US');
   };
 
   // Loading state
@@ -173,66 +225,37 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg">
-        <h3 className="font-semibold">Error</h3>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
   // Free plan default for new users
-  const freePlan = {
+  const freePlan: Plan = {
     id: 'free',
-    name: 'Free',
+    name: t.free.name,
     price: 0,
     interval: 'month',
-    description: 'Basic features for personal use',
-    features: [
-      'Up to 3 accounts',
-      'Up to 100 transactions per month',
-      'Basic reporting',
-      'Email support'
-    ],
+    description: t.free.description,
+    features: t.free.features,
     isCurrentPlan: !currentSubscription
   };
 
   // Pro plan
-  const proPlan = {
+  const proPlan: Plan = {
     id: 'pro',
-    name: 'Pro',
+    name: t.pro.name,
     price: 9.99,
     interval: 'month',
-    description: 'Advanced features for power users',
-    features: [
-      'Unlimited accounts',
-      'Unlimited transactions',
-      'Advanced analytics',
-      'CSV/JSON export',
-      'Priority support',
-      'Custom categories'
-    ],
+    description: t.pro.description,
+    features: t.pro.features,
     isPopular: true,
     isCurrentPlan: currentSubscription?.planId === 'pro'
   };
 
   // Business plan
-  const businessPlan = {
+  const businessPlan: Plan = {
     id: 'business',
-    name: 'Business',
+    name: t.business.name,
     price: 19.99,
     interval: 'month',
-    description: 'Enterprise solutions for teams',
-    features: [
-      'Everything in Pro',
-      'Team collaboration',
-      'Role-based permissions',
-      'API access',
-      'Dedicated support',
-      'Custom branding'
-    ],
+    description: t.business.description,
+    features: t.business.features,
     isCurrentPlan: currentSubscription?.planId === 'business'
   };
 
@@ -248,20 +271,27 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
 
   return (
     <div className="space-y-8">
+      {/* Demo Mode Notification */}
+      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200">
+        <h3 className="font-medium text-lg mb-1">Demo Mode</h3>
+        <p className="mb-2">This subscription section is operating in demo mode with mocked data. No actual subscription or payment processing is performed.</p>
+        <p className="text-sm">When clicking on any plan or button, the UI will update to simulate the experience, but no backend operations will occur.</p>
+      </div>
+      
       {/* Current Plan */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Your Subscription</h2>
+          <h2 className="text-xl font-semibold">{t.yourSubscription}</h2>
         </CardHeader>
         <CardBody>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
             <div>
               <div className="flex items-center">
                 <h3 className="text-lg font-medium">
-                  {currentPlan?.name} Plan
+                  {currentPlan?.name} {t.planSuffix}
                 </h3>
                 <Badge variant="primary" className="ml-2">
-                  {currentPlan?.id === 'free' ? 'Current' : 'Active'}
+                  {currentPlan?.id === 'free' ? t.current : t.active}
                 </Badge>
               </div>
               <p className="text-muted-foreground mt-1">
@@ -277,7 +307,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
                 <span className="text-muted-foreground">/{currentPlan?.interval}</span>
                 {currentSubscription.endDate && (
                   <p className="text-sm text-muted-foreground">
-                    Next billing on {formatDate(currentSubscription.endDate)}
+                    {t.nextBilling} {formatDate(currentSubscription.endDate)}
                   </p>
                 )}
               </div>
@@ -285,7 +315,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
           </div>
           
           <div className="bg-muted/30 p-4 rounded-md">
-            <h4 className="font-medium mb-2">Plan Features</h4>
+            <h4 className="font-medium mb-2">{t.planFeatures}</h4>
             <ul className="space-y-2">
               {currentPlan?.features.map((feature, index) => (
                 <li key={index} className="flex items-start">
@@ -303,7 +333,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
               className="text-error"
               onClick={handleCancelSubscription}
             >
-              Cancel Subscription
+              {t.cancelSubscription}
             </Button>
           )}
         </CardFooter>
@@ -312,11 +342,11 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
       {/* Available Plans */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Available Plans</h2>
+          <h2 className="text-xl font-semibold">{t.availablePlans}</h2>
         </CardHeader>
         <CardBody>
           <p className="text-muted-foreground mb-6">
-            Choose the plan that works best for your needs.
+            {t.choosePlan}
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -331,7 +361,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
               >
                 {plan.isPopular && (
                   <div className="bg-primary-500 text-white text-xs font-medium py-1 px-3 absolute top-0 right-0 rounded-bl-lg">
-                    Most Popular
+                    {t.mostPopular}
                   </div>
                 )}
                 
@@ -362,7 +392,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
                     disabled={plan.isCurrentPlan || isChangingPlan}
                     onClick={() => handleChangePlan(plan.id)}
                   >
-                    {plan.isCurrentPlan ? 'Current Plan' : `Upgrade to ${plan.name}`}
+                    {plan.isCurrentPlan ? t.currentPlan : `${t.upgradeTo} ${plan.name}`}
                   </Button>
                 </div>
               </div>
@@ -371,50 +401,7 @@ export const SubscriptionSection = ({ locale }: SubscriptionSectionProps) => {
         </CardBody>
       </Card>
 
-      {/* Billing History */}
-      {billingHistory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Billing History</h2>
-              <FiList className="text-muted-foreground w-5 h-5" />
-            </div>
-          </CardHeader>
-          <CardBody>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[500px]">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-3 px-4 text-left font-medium">Invoice</th>
-                    <th className="py-3 px-4 text-left font-medium">Date</th>
-                    <th className="py-3 px-4 text-left font-medium">Amount</th>
-                    <th className="py-3 px-4 text-left font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {billingHistory.map((invoice) => (
-                    <tr key={invoice.id} className="border-b border-border hover:bg-muted/20">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          <FiCreditCard className="text-muted-foreground mr-2" />
-                          <span>{invoice.id}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">{formatDate(invoice.date)}</td>
-                      <td className="py-3 px-4">{formatCurrency(invoice.amount)}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={invoice.status === 'paid' ? 'success' : 'warning'}>
-                          {invoice.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+      {/* No Billing History in Demo Mode */}
     </div>
   );
 }; 

@@ -6,6 +6,82 @@ import { Locale } from '@/shared/lib/i18n';
 import { api } from '@/shared/api';
 import { ToastProvider } from '@/shared/ui/Toast/ToastProvider';
 
+// Define translations
+const translations = {
+  en: {
+    dataManagement: 'Data Management',
+    exportData: 'Export Data',
+    exportDescription: 'Download your financial data for backup or analysis. Choose a format below:',
+    exportAsCSV: 'Export as CSV',
+    exportAsJSON: 'Export as JSON',
+    importData: 'Import Data',
+    importDescription: 'Upload your financial data from a previous export. Supported formats: CSV, JSON.',
+    chooseFile: 'Choose File',
+    noFileSelected: 'No file selected',
+    importButton: 'Import',
+    resetProfile: 'Reset Profile',
+    resetProfileDescription: 'Reset your profile to default settings. This will remove all your transactions, accounts, and settings.',
+    resetWarning: 'Warning: This action cannot be undone.',
+    resetButton: 'Reset Profile',
+    deleteAccount: 'Delete Account',
+    deleteDescription: 'Permanently delete your account and all associated data.',
+    deleteWarning: 'Warning: This action cannot be undone and will delete all your data.',
+    deleteButton: 'Delete Account',
+    confirmReset: 'Confirm Reset',
+    confirmResetText: 'Are you sure you want to reset your profile? This will delete all your transactions, accounts, and settings.',
+    confirmDelete: 'Confirm Deletion',
+    confirmDeleteText: 'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    selectProfile: 'Select Profile',
+    resetSelectedProfile: 'Reset Selected Profile',
+    loadingProfiles: 'Loading Profiles...',
+    selectProfileInstruction: 'Select a profile to reset:',
+    loadingProfilesText: 'Loading available profiles...',
+    success: 'Success',
+    error: 'Error',
+    successReset: 'Your profile has been reset to default state',
+    errorNoProfile: 'No active profile selected',
+    errorReset: 'Failed to reset profile. Please try again.'
+  },
+  ru: {
+    dataManagement: 'Управление данными',
+    exportData: 'Экспорт данных',
+    exportDescription: 'Скачайте свои финансовые данные для резервного копирования или анализа. Выберите формат ниже:',
+    exportAsCSV: 'Экспорт в CSV',
+    exportAsJSON: 'Экспорт в JSON',
+    importData: 'Импорт данных',
+    importDescription: 'Загрузите ваши финансовые данные из предыдущего экспорта. Поддерживаемые форматы: CSV, JSON.',
+    chooseFile: 'Выбрать файл',
+    noFileSelected: 'Файл не выбран',
+    importButton: 'Импортировать',
+    resetProfile: 'Сбросить профиль',
+    resetProfileDescription: 'Сбросьте ваш профиль до настроек по умолчанию. Это удалит все ваши транзакции, счета и настройки.',
+    resetWarning: 'Предупреждение: Это действие нельзя отменить.',
+    resetButton: 'Сбросить профиль',
+    deleteAccount: 'Удалить аккаунт',
+    deleteDescription: 'Навсегда удалить ваш аккаунт и все связанные данные.',
+    deleteWarning: 'Предупреждение: Это действие нельзя отменить, и оно удалит все ваши данные.',
+    deleteButton: 'Удалить аккаунт',
+    confirmReset: 'Подтвердите сброс',
+    confirmResetText: 'Вы уверены, что хотите сбросить ваш профиль? Это удалит все ваши транзакции, счета и настройки.',
+    confirmDelete: 'Подтвердите удаление',
+    confirmDeleteText: 'Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить, и оно навсегда удалит все ваши данные.',
+    cancel: 'Отмена',
+    confirm: 'Подтвердить',
+    selectProfile: 'Выбрать профиль',
+    resetSelectedProfile: 'Сбросить выбранный профиль',
+    loadingProfiles: 'Загрузка профилей...',
+    selectProfileInstruction: 'Выберите профиль для сброса:',
+    loadingProfilesText: 'Загрузка доступных профилей...',
+    success: 'Успех',
+    error: 'Ошибка',
+    successReset: 'Ваш профиль был сброшен до исходного состояния',
+    errorNoProfile: 'Нет активного профиля',
+    errorReset: 'Не удалось сбросить профиль. Пожалуйста, попробуйте снова.'
+  }
+};
+
 interface DataSectionProps {
   locale: Locale;
 }
@@ -28,14 +104,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [availableProfiles, setAvailableProfiles] = useState<Array<{id: string, name: string}>>([]);
   
-  // Use locale for internationalized messages
-  const messages = {
-    successTitle: locale === 'ru' ? 'Успех' : 'Success',
-    successReset: locale === 'ru' ? 'Ваш профиль был сброшен до исходного состояния' : 'Your profile has been reset to default state',
-    errorTitle: locale === 'ru' ? 'Ошибка' : 'Error',
-    errorNoProfile: locale === 'ru' ? 'Нет активного профиля' : 'No active profile selected',
-    errorReset: locale === 'ru' ? 'Не удалось сбросить профиль. Пожалуйста, попробуйте снова.' : 'Failed to reset profile. Please try again.',
-  };
+  const t = translations[locale];
   
   // Simple fallback toast implementation using alert
   const toast: ToastHandler['toast'] = (props) => {
@@ -199,8 +268,8 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       console.log('Resetting profile with ID:', profile.id);
       await api.post(`/profiles/${profile.id}/reset`);
       toast({
-        title: messages.successTitle,
-        description: messages.successReset,
+        title: t.success,
+        description: t.successReset,
         variant: "success",
       });
       
@@ -209,8 +278,8 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
     } catch (error) {
       console.error('Error resetting profile:', error);
       toast({
-        title: messages.errorTitle,
-        description: messages.errorReset,
+        title: t.error,
+        description: t.errorReset,
         variant: "error",
       });
     } finally {
@@ -225,8 +294,8 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       proceedWithProfileReset({ id: manualProfileId.trim() });
     } else {
       toast({
-        title: messages.errorTitle,
-        description: messages.errorNoProfile,
+        title: t.error,
+        description: t.errorNoProfile,
         variant: "error",
       });
     }
@@ -237,16 +306,16 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
     <Dialog
       isOpen={manualProfileIdDialogOpen}
       onClose={() => setManualProfileIdDialogOpen(false)}
-      title={loadingProfiles ? "Loading Profiles..." : "Select Profile"}
-      primaryActionText="Reset Selected Profile"
+      title={loadingProfiles ? t.loadingProfiles : t.selectProfile}
+      primaryActionText={t.resetSelectedProfile}
       onPrimaryAction={handleManualProfileSubmit}
       size="md"
     >
       {loadingProfiles ? (
-        <div className="text-center py-4">Loading available profiles...</div>
+        <div className="text-center py-4">{t.loadingProfilesText}</div>
       ) : availableProfiles.length > 0 ? (
         <div className="space-y-4">
-          <p>Select a profile to reset:</p>
+          <p>{t.selectProfileInstruction}</p>
           <select
             value={manualProfileId}
             onChange={(e) => setManualProfileId(e.target.value)}
@@ -284,11 +353,11 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       {/* Data Export */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Export Your Data</h2>
+          <h2 className="text-xl font-semibold">{t.exportData}</h2>
         </CardHeader>
         <CardBody>
           <p className="text-muted-foreground mb-6">
-            Download a copy of your data in CSV or JSON format.
+            {t.exportDescription}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -298,7 +367,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
               onClick={() => handleExportData('csv')}
               isLoading={isExporting}
             >
-              Export as CSV
+              {t.exportAsCSV}
             </Button>
             
             <Button
@@ -307,7 +376,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
               onClick={() => handleExportData('json')}
               isLoading={isExporting}
             >
-              Export as JSON
+              {t.exportAsJSON}
             </Button>
           </div>
         </CardBody>
@@ -316,11 +385,11 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       {/* Data Import */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Import Data</h2>
+          <h2 className="text-xl font-semibold">{t.importData}</h2>
         </CardHeader>
         <CardBody>
           <p className="text-muted-foreground mb-4">
-            Import data from a CSV or JSON file. This will add to your existing data.
+            {t.importDescription}
           </p>
           
           <div className="p-4 bg-muted/30 rounded-md border border-border mb-4">
@@ -341,7 +410,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
               leftIcon={<FiUpload />}
               onClick={triggerFileInput}
             >
-              Select File
+              {t.chooseFile}
             </Button>
             
             <input 
@@ -366,7 +435,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
               variant="primary"
               onClick={handleImportData}
             >
-              Import Data
+              {t.importButton}
             </Button>
           </CardFooter>
         )}
@@ -375,16 +444,16 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       {/* Reset Profile */}
       <Card className="border-warning/30">
         <CardHeader>
-          <h2 className="text-xl font-semibold text-warning">Reset Profile</h2>
+          <h2 className="text-xl font-semibold text-warning">{t.resetProfile}</h2>
         </CardHeader>
         <CardBody>
           <div className="p-4 bg-warning/10 rounded-md border border-warning/30 mb-6">
             <div className="flex items-start">
               <FiAlertCircle className="text-warning mt-0.5 mr-2 flex-shrink-0" />
               <div>
-                <h3 className="font-medium text-warning">Warning</h3>
+                <h3 className="font-medium text-warning">{t.resetWarning}</h3>
                 <p className="text-sm mt-1">
-                  Resetting your profile will delete all your transactions, custom categories, and reset your account balances to zero. Default categories will be recreated. This action cannot be undone.
+                  {t.resetProfileDescription}
                 </p>
               </div>
             </div>
@@ -396,7 +465,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
             className="border-warning/50 text-warning hover:bg-warning/10"
             onClick={() => setIsResetDialogOpen(true)}
           >
-            Reset my profile
+            {t.resetButton}
           </Button>
         </CardBody>
       </Card>
@@ -404,16 +473,16 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       {/* Account Deletion */}
       <Card className="border-error/30">
         <CardHeader>
-          <h2 className="text-xl font-semibold text-error">Delete Account</h2>
+          <h2 className="text-xl font-semibold text-error">{t.deleteAccount}</h2>
         </CardHeader>
         <CardBody>
           <div className="p-4 bg-error/10 rounded-md border border-error/30 mb-6">
             <div className="flex items-start">
               <FiAlertCircle className="text-error mt-0.5 mr-2 flex-shrink-0" />
               <div>
-                <h3 className="font-medium text-error">Danger Zone</h3>
+                <h3 className="font-medium text-error">{t.deleteWarning}</h3>
                 <p className="text-sm mt-1">
-                  Deleting your account is permanent. All your data will be permanently removed and cannot be recovered.
+                  {t.deleteDescription}
                 </p>
               </div>
             </div>
@@ -425,7 +494,7 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
             className="border-error/50 text-error hover:bg-error/10"
             onClick={() => setIsDeleteDialogOpen(true)}
           >
-            Delete my account
+            {t.deleteButton}
           </Button>
         </CardBody>
       </Card>
@@ -434,32 +503,32 @@ const DataSectionContent = ({ locale }: DataSectionProps) => {
       <Dialog
         isOpen={isResetDialogOpen}
         onClose={() => setIsResetDialogOpen(false)}
-        title="Reset Profile"
-        primaryActionText="Yes, reset my profile"
+        title={t.confirmReset}
+        primaryActionText={t.confirm}
         onPrimaryAction={handleResetProfile}
         isPrimaryActionLoading={isResetting}
         size="md"
       >
-        <p>Are you sure you want to reset your profile? This will:</p>
+        <p>{t.confirmResetText}</p>
         <ul className="list-disc pl-6 my-4 space-y-1">
           <li>Delete all your transactions</li>
           <li>Delete all custom categories</li>
           <li>Reset all account balances to zero</li>
           <li>Recreate default categories</li>
         </ul>
-        <p className="font-medium">This action cannot be undone.</p>
+        <p className="font-medium">{t.resetWarning}</p>
       </Dialog>
 
       {/* Deletion Confirmation Dialog */}
       <Dialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        title="Delete Account"
-        primaryActionText="Yes, delete my account"
+        title={t.confirmDelete}
+        primaryActionText={t.confirm}
         onPrimaryAction={handleDeleteAccount}
         size="md"
       >
-        <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+        <p>{t.confirmDeleteText}</p>
       </Dialog>
 
       {/* Manual Profile ID Dialog */}

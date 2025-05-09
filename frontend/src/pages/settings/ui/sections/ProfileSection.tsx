@@ -5,6 +5,36 @@ import { FiCamera, FiSave } from 'react-icons/fi';
 import { Card, CardHeader, CardBody, CardFooter, Input, Button, Avatar } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 
+// Define translations
+const translations = {
+  en: {
+    profileSettings: 'Profile Settings',
+    fullName: 'Full Name',
+    email: 'Email Address',
+    phone: 'Phone Number',
+    country: 'Country/Region',
+    saveChanges: 'Save Changes',
+    clickToChange: 'Click on the avatar to change your profile picture',
+    enterFullName: 'Enter your full name',
+    enterEmail: 'Enter your email address',
+    enterPhone: 'Enter your phone number',
+    enterCountry: 'Enter your country or region'
+  },
+  ru: {
+    profileSettings: 'Настройки профиля',
+    fullName: 'Полное имя',
+    email: 'Электронная почта',
+    phone: 'Номер телефона',
+    country: 'Страна/Регион',
+    saveChanges: 'Сохранить изменения',
+    clickToChange: 'Нажмите на аватар, чтобы изменить фото профиля',
+    enterFullName: 'Введите ваше полное имя',
+    enterEmail: 'Введите вашу электронную почту',
+    enterPhone: 'Введите ваш номер телефона',
+    enterCountry: 'Введите вашу страну или регион'
+  }
+};
+
 interface ProfileSectionProps {
   locale: Locale;
 }
@@ -17,6 +47,8 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
     phone: '+1 (555) 123-4567',
     country: 'United States'
   });
+  
+  const t = translations[locale];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -54,7 +86,7 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-xl font-semibold">Profile Settings</h2>
+        <h2 className="text-xl font-semibold">{t.profileSettings}</h2>
       </CardHeader>
       <CardBody>
         <form onSubmit={handleSubmit}>
@@ -85,43 +117,43 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
               <h3 className="text-lg font-medium">{formData.name}</h3>
               <p className="text-muted-foreground">{formData.email}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Click on the avatar to change your profile picture
+                {t.clickToChange}
               </p>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input 
-              label="Full Name"
+              label={t.fullName}
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="Enter your full name"
+              placeholder={t.enterFullName}
             />
             
             <Input 
-              label="Email Address"
+              label={t.email}
               name="email"
               type="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="Enter your email address"
+              placeholder={t.enterEmail}
             />
             
             <Input 
-              label="Phone Number"
+              label={t.phone}
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
-              placeholder="Enter your phone number"
+              placeholder={t.enterPhone}
             />
             
             <Input 
-              label="Country/Region"
+              label={t.country}
               name="country"
               value={formData.country}
               onChange={handleInputChange}
-              placeholder="Enter your country or region"
+              placeholder={t.enterCountry}
             />
           </div>
         </form>
@@ -133,7 +165,7 @@ export const ProfileSection = ({ locale }: ProfileSectionProps) => {
           isLoading={isLoading}
           onClick={handleSubmit}
         >
-          Save Changes
+          {t.saveChanges}
         </Button>
       </CardFooter>
     </Card>

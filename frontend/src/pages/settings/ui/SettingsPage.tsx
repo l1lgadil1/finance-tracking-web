@@ -2,17 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiUser, FiShield, FiBell, FiGlobe, FiDatabase, FiCreditCard, FiHelpCircle, FiMoon, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiShield, FiGlobe, FiDatabase, FiCreditCard, FiMoon, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Card, CardBody } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 import { ProfileSection } from './sections/ProfileSection';
 import { SecuritySection } from './sections/SecuritySection';
-import { NotificationsSection } from './sections/NotificationsSection';
 import { AppearanceSection } from './sections/AppearanceSection';
 import { LanguageSection } from './sections/LanguageSection';
 import { DataSection } from './sections/DataSection';
 import { SubscriptionSection } from './sections/SubscriptionSection';
-import { SupportSection } from './sections/SupportSection';
+
+// Define translations for the settings page
+const translations = {
+  en: {
+    settings: 'Settings',
+    profile: 'Profile',
+    security: 'Security',
+    appearance: 'Appearance',
+    language: 'Language',
+    dataManagement: 'Data Management',
+    subscription: 'Subscription',
+  },
+  ru: {
+    settings: 'Настройки',
+    profile: 'Профиль',
+    security: 'Безопасность',
+    appearance: 'Внешний вид',
+    language: 'Язык',
+    dataManagement: 'Управление данными',
+    subscription: 'Подписка',
+  }
+};
 
 interface SettingsPageProps {
   params: {
@@ -31,6 +51,7 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
   const [activeSection, setActiveSection] = useState<string>('profile');
   const [mounted, setMounted] = useState(false);
   const { locale } = params;
+  const t = translations[locale];
 
   // For mobile tab scrolling
   const tabScrollRef = React.useRef<HTMLDivElement>(null);
@@ -84,51 +105,39 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
   const sections: SettingsSection[] = [
     {
       id: 'profile',
-      label: 'Profile',
+      label: t.profile,
       icon: <FiUser className="w-5 h-5" />,
       component: <ProfileSection locale={locale} />
     },
     {
       id: 'security',
-      label: 'Security',
+      label: t.security,
       icon: <FiShield className="w-5 h-5" />,
       component: <SecuritySection locale={locale} />
     },
     {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: <FiBell className="w-5 h-5" />,
-      component: <NotificationsSection locale={locale} />
-    },
-    {
       id: 'appearance',
-      label: 'Appearance',
+      label: t.appearance,
       icon: <FiMoon className="w-5 h-5" />,
       component: <AppearanceSection locale={locale} />
     },
     {
       id: 'language',
-      label: 'Language',
+      label: t.language,
       icon: <FiGlobe className="w-5 h-5" />,
       component: <LanguageSection locale={locale} />
     },
     {
       id: 'data',
-      label: 'Data Management',
+      label: t.dataManagement,
       icon: <FiDatabase className="w-5 h-5" />,
       component: <DataSection locale={locale} />
     },
     {
       id: 'subscription',
-      label: 'Subscription',
+      label: t.subscription,
       icon: <FiCreditCard className="w-5 h-5" />,
       component: <SubscriptionSection locale={locale} />
-    },
-    {
-      id: 'support',
-      label: 'Help & Support',
-      icon: <FiHelpCircle className="w-5 h-5" />,
-      component: <SupportSection locale={locale} />
     }
   ];
 
@@ -157,7 +166,7 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
   if (!mounted) {
     return (
       <div className="max-w-7xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-8 text-primary-600">Settings</h1>
+        <h1 className="text-3xl font-bold mb-8 text-primary-600">{t.settings}</h1>
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1 min-w-0"></div>
         </div>
@@ -167,7 +176,7 @@ export const SettingsPage = ({ params }: SettingsPageProps) => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-primary-600">Settings</h1>
+      <h1 className="text-3xl font-bold mb-8 text-primary-600">{t.settings}</h1>
       
       {/* Mobile tab navigation */}
       <div className="lg:hidden mb-6 relative">

@@ -6,6 +6,34 @@ import { FiMoon, FiSun, FiMonitor } from 'react-icons/fi';
 import { Card, CardHeader, CardBody } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 
+// Define translations
+const translations = {
+  en: {
+    appearance: 'Appearance',
+    customize: 'Customize how AqshaTracker looks for you. Choose between light mode, dark mode, or follow your system settings.',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    lightDescription: 'Light mode with bright background and dark text',
+    darkDescription: 'Dark mode with dark background and light text',
+    systemDescription: 'Follows your device system preferences',
+    themePreview: 'Theme Preview',
+    previewDescription: 'This is how your selected theme looks.'
+  },
+  ru: {
+    appearance: 'Внешний вид',
+    customize: 'Настройте внешний вид AqshaTracker. Выберите светлый режим, темный режим или следуйте настройкам вашей системы.',
+    light: 'Светлый',
+    dark: 'Темный',
+    system: 'Системный',
+    lightDescription: 'Светлый режим с ярким фоном и темным текстом',
+    darkDescription: 'Темный режим с темным фоном и светлым текстом',
+    systemDescription: 'Следует настройкам вашего устройства',
+    themePreview: 'Предпросмотр темы',
+    previewDescription: 'Так выглядит выбранная вами тема.'
+  }
+};
+
 interface AppearanceSectionProps {
   locale: Locale;
 }
@@ -20,6 +48,7 @@ type ThemeOption = {
 export const AppearanceSection = ({ locale }: AppearanceSectionProps) => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const t = translations[locale];
 
   // Ensure component is mounted to avoid hydration mismatch
   useEffect(() => {
@@ -29,21 +58,21 @@ export const AppearanceSection = ({ locale }: AppearanceSectionProps) => {
   const themeOptions: ThemeOption[] = [
     {
       id: 'light',
-      name: 'Light',
+      name: t.light,
       icon: <FiSun className="w-5 h-5" />,
-      description: 'Light mode with bright background and dark text'
+      description: t.lightDescription
     },
     {
       id: 'dark',
-      name: 'Dark',
+      name: t.dark,
       icon: <FiMoon className="w-5 h-5" />,
-      description: 'Dark mode with dark background and light text'
+      description: t.darkDescription
     },
     {
       id: 'system',
-      name: 'System',
+      name: t.system,
       icon: <FiMonitor className="w-5 h-5" />,
-      description: 'Follows your device system preferences'
+      description: t.systemDescription
     }
   ];
 
@@ -56,11 +85,11 @@ export const AppearanceSection = ({ locale }: AppearanceSectionProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-xl font-semibold">Appearance</h2>
+        <h2 className="text-xl font-semibold">{t.appearance}</h2>
       </CardHeader>
       <CardBody>
         <p className="text-muted-foreground mb-6">
-          Customize how AqshaTracker looks for you. Choose between light mode, dark mode, or follow your system settings.
+          {t.customize}
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -105,8 +134,8 @@ export const AppearanceSection = ({ locale }: AppearanceSectionProps) => {
         </div>
         
         <div className="mt-8 p-4 rounded-lg bg-muted">
-          <h3 className="font-medium mb-2">Theme Preview</h3>
-          <p className="text-sm text-muted-foreground mb-4">This is how your selected theme looks.</p>
+          <h3 className="font-medium mb-2">{t.themePreview}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{t.previewDescription}</p>
           
           <div className="flex flex-col sm:flex-row gap-4" suppressHydrationWarning>
             <div className="flex-1 p-4 rounded-md border border-border bg-background">

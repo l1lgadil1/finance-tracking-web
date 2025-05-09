@@ -7,6 +7,86 @@ import { Locale } from '@/shared/lib/i18n';
 import { securityApi, ActiveSession, TwoFactorAuthStatus } from '@/entities/security/api/securityApi';
 import { api } from '@/shared/api/api';
 
+// Define translations
+const translations = {
+  en: {
+    changePassword: 'Change Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmPassword: 'Confirm New Password',
+    enterCurrentPassword: 'Enter your current password',
+    enterNewPassword: 'Enter your new password',
+    confirmNewPassword: 'Confirm your new password',
+    passwordsMismatch: "Passwords don't match",
+    passwordRequirements: 'Use 8+ characters with a mix of letters, numbers & symbols',
+    saveChanges: 'Save Changes',
+    twoFactorAuth: 'Two-Factor Authentication',
+    twoFactorDescription: 'Add an extra layer of security to your account by requiring a verification code in addition to your password.',
+    enable2fa: 'Enable Two-Factor Authentication',
+    disable2fa: 'Disable Two-Factor Authentication',
+    setupInstructions: 'To set up two-factor authentication, scan this QR code with your authentication app.',
+    backupCodes: 'Backup Codes',
+    activeSessions: 'Active Sessions',
+    sessionsDescription: 'These are the devices that are currently logged into your account.',
+    device: 'Device',
+    location: 'Location',
+    lastActive: 'Last Active',
+    terminateSession: 'Terminate',
+    terminateOtherSessions: 'Terminate All Other Sessions',
+    loadingData: 'Loading security data...',
+    currentDevice: 'Current device',
+    passwordStrength: 'Password strength',
+    passwordStrengthLevels: {
+      tooWeak: 'Too weak',
+      weak: 'Weak',
+      fair: 'Fair',
+      good: 'Good',
+      strong: 'Strong',
+      veryStrong: 'Very Strong'
+    },
+    failedToLoad: 'Failed to load security data. Please try again later.',
+    failedToTerminate: 'Failed to terminate session. Please try again.'
+  },
+  ru: {
+    changePassword: 'Изменить пароль',
+    currentPassword: 'Текущий пароль',
+    newPassword: 'Новый пароль',
+    confirmPassword: 'Подтвердите новый пароль',
+    enterCurrentPassword: 'Введите ваш текущий пароль',
+    enterNewPassword: 'Введите ваш новый пароль',
+    confirmNewPassword: 'Подтвердите ваш новый пароль',
+    passwordsMismatch: 'Пароли не совпадают',
+    passwordRequirements: 'Используйте 8+ символов с комбинацией букв, цифр и специальных символов',
+    saveChanges: 'Сохранить изменения',
+    twoFactorAuth: 'Двухфакторная аутентификация',
+    twoFactorDescription: 'Добавьте дополнительный уровень безопасности к вашей учетной записи, требуя код подтверждения в дополнение к паролю.',
+    enable2fa: 'Включить двухфакторную аутентификацию',
+    disable2fa: 'Отключить двухфакторную аутентификацию',
+    setupInstructions: 'Для настройки двухфакторной аутентификации, отсканируйте этот QR-код вашим приложением аутентификации.',
+    backupCodes: 'Резервные коды',
+    activeSessions: 'Активные сессии',
+    sessionsDescription: 'Эти устройства в настоящее время подключены к вашей учетной записи.',
+    device: 'Устройство',
+    location: 'Местоположение',
+    lastActive: 'Последняя активность',
+    terminateSession: 'Завершить',
+    terminateOtherSessions: 'Завершить все другие сессии',
+    loadingData: 'Загрузка данных безопасности...',
+    currentDevice: 'Текущее устройство',
+    passwordStrength: 'Надежность пароля',
+    passwordStrengthLevels: {
+      tooWeak: 'Слишком слабый',
+      weak: 'Слабый',
+      fair: 'Средний',
+      good: 'Хороший',
+      strong: 'Сильный',
+      veryStrong: 'Очень сильный'
+    },
+    failedToLoad: 'Не удалось загрузить данные безопасности. Пожалуйста, попробуйте позже.',
+    failedToTerminate: 'Не удалось завершить сессию. Пожалуйста, попробуйте снова.'
+  }
+};
+
 interface SecuritySectionProps {
   locale: Locale;
 }
@@ -21,6 +101,8 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
     newPassword: '',
     confirmPassword: ''
   });
+  
+  const t = translations[locale];
   
   // Fetch security data
   useEffect(() => {
@@ -51,14 +133,14 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
         setActiveSessions(sessionsData);
       } catch (error) {
         console.error('Error fetching security data:', error);
-        setSessionError('Failed to load security data. Please try again later.');
+        setSessionError(t.failedToLoad);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchSecurityData();
-  }, []);
+  }, [t.failedToLoad]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -140,7 +222,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
       );
     } catch (error) {
       console.error('Error terminating session:', error);
-      setSessionError('Failed to terminate session. Please try again.');
+      setSessionError(t.failedToTerminate);
     }
   };
 
@@ -160,7 +242,13 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
 
   const renderPasswordStrength = () => {
     const strength = getPasswordStrength(passwordData.newPassword);
-    const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+    const labels = [
+      t.passwordStrengthLevels.weak,
+      t.passwordStrengthLevels.fair,
+      t.passwordStrengthLevels.good,
+      t.passwordStrengthLevels.strong,
+      t.passwordStrengthLevels.veryStrong
+    ];
     const colors = [
       'bg-error', 
       'bg-warning', 
@@ -184,7 +272,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          Password strength: {strength > 0 ? labels[strength - 1] : 'Too weak'}
+          {t.passwordStrength}: {strength > 0 ? labels[strength - 1] : t.passwordStrengthLevels.tooWeak}
         </p>
       </div>
     );
@@ -204,41 +292,41 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
       {/* Change Password */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Change Password</h2>
+          <h2 className="text-xl font-semibold">{t.changePassword}</h2>
         </CardHeader>
         <CardBody>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <Input 
-              label="Current Password"
+              label={t.currentPassword}
               name="currentPassword"
               type="password"
               value={passwordData.currentPassword}
               onChange={handleInputChange}
-              placeholder="Enter your current password"
+              placeholder={t.enterCurrentPassword}
             />
             
             <Input 
-              label="New Password"
+              label={t.newPassword}
               name="newPassword"
               type="password"
               value={passwordData.newPassword}
               onChange={handleInputChange}
-              placeholder="Enter your new password"
-              helperText="Use 8+ characters with a mix of letters, numbers & symbols"
+              placeholder={t.enterNewPassword}
+              helperText={t.passwordRequirements}
             />
             {renderPasswordStrength()}
             
             <Input 
-              label="Confirm New Password"
+              label={t.confirmPassword}
               name="confirmPassword"
               type="password"
               value={passwordData.confirmPassword}
               onChange={handleInputChange}
-              placeholder="Confirm your new password"
+              placeholder={t.confirmNewPassword}
               error={
                 passwordData.confirmPassword && 
                 passwordData.newPassword !== passwordData.confirmPassword 
-                  ? "Passwords don't match" 
+                  ? t.passwordsMismatch
                   : undefined
               }
             />
@@ -258,7 +346,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
               getPasswordStrength(passwordData.newPassword) < 3
             }
           >
-            Update Password
+            {t.saveChanges}
           </Button>
         </CardFooter>
       </Card>
@@ -267,7 +355,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Two-Factor Authentication</h2>
+            <h2 className="text-xl font-semibold">{t.twoFactorAuth}</h2>
             <FiShield className="text-primary-500 w-5 h-5" />
           </div>
         </CardHeader>
@@ -276,7 +364,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
             <div>
               <h3 className="font-medium">Enhance your account security</h3>
               <p className="text-muted-foreground text-sm mt-1">
-                Two-factor authentication adds an extra layer of security to your account
+                {t.twoFactorDescription}
               </p>
             </div>
             
@@ -306,7 +394,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
       {/* Active Sessions */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Active Sessions</h2>
+          <h2 className="text-xl font-semibold">{t.activeSessions}</h2>
         </CardHeader>
         <CardBody>
           {sessionError ? (
@@ -315,7 +403,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
             </div>
           ) : activeSessions.length === 0 && !isLoading ? (
             <div className="text-center py-6 text-muted-foreground">
-              No active sessions found
+              {t.sessionsDescription}
             </div>
           ) : (
             <div className="space-y-4">
@@ -329,7 +417,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
                       <span className="font-medium">{session.device}</span>
                       {session.isCurrent && (
                         <span className="ml-2 px-2 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-full">
-                          Current
+                          {t.currentDevice}
                         </span>
                       )}
                     </div>
@@ -348,7 +436,7 @@ export const SecuritySection = ({ locale }: SecuritySectionProps) => {
                       onClick={() => handleSessionTerminate(session.id)}
                       className="text-error"
                     >
-                      Terminate
+                      {t.terminateSession}
                     </Button>
                   )}
                 </div>

@@ -19,7 +19,15 @@ export const Header: FC<HeaderProps> = ({ username, email, pageName, locale, chi
     >
       <div className="flex items-center">
         {children}
-        <h1 className="text-xl font-semibold text-foreground truncate">{pageName}</h1>
+        <h1 className="text-xl font-semibold text-foreground truncate">
+          {typeof pageName === 'string' ? 
+            pageName === 'Dashboard' ? 
+              locale === 'ru' ? 'Панель управления' : pageName :
+              locale === 'ru' ? 
+                pageName.charAt(0).toUpperCase() + pageName.slice(1) : 
+                pageName
+          : pageName}
+        </h1>
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">

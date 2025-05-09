@@ -5,6 +5,90 @@ import { FiSave } from 'react-icons/fi';
 import { Card, CardHeader, CardBody, CardFooter, Button, Checkbox } from '@/shared/ui';
 import { Locale } from '@/shared/lib/i18n';
 
+// Define translations
+const translations = {
+  en: {
+    notificationPreferences: 'Notification Preferences',
+    manageNotifications: 'Manage how you receive notifications across channels.',
+    notification: 'Notification',
+    email: 'Email',
+    push: 'Push',
+    sms: 'SMS',
+    enableAll: 'Enable all',
+    disableAll: 'Disable all',
+    saveChanges: 'Save Changes',
+    toggleAll: 'Toggle all',
+    categories: {
+      account: {
+        name: 'Account',
+        description: 'Notifications related to your account',
+        newLogin: 'New login',
+        newLoginDesc: 'When a new device logs into your account',
+        passwordChanges: 'Password changes',
+        passwordChangesDesc: 'When your password is changed'
+      },
+      finance: {
+        name: 'Finance',
+        description: 'Notifications related to your financial activity',
+        newTransactions: 'New transactions',
+        newTransactionsDesc: 'When a new transaction is recorded',
+        budgetAlerts: 'Budget alerts',
+        budgetAlertsDesc: 'When you approach or exceed budget limits',
+        goalProgress: 'Goal progress',
+        goalProgressDesc: 'Updates on your financial goals'
+      },
+      system: {
+        name: 'System',
+        description: 'System and platform notifications',
+        platformUpdates: 'Platform updates',
+        platformUpdatesDesc: 'News about platform updates and features',
+        maintenanceAlerts: 'Maintenance alerts',
+        maintenanceAlertsDesc: 'Planned maintenance notifications'
+      }
+    }
+  },
+  ru: {
+    notificationPreferences: 'Настройки уведомлений',
+    manageNotifications: 'Управляйте тем, как вы получаете уведомления по различным каналам.',
+    notification: 'Уведомление',
+    email: 'Эл. почта',
+    push: 'Push',
+    sms: 'СМС',
+    enableAll: 'Включить все',
+    disableAll: 'Отключить все',
+    saveChanges: 'Сохранить изменения',
+    toggleAll: 'Переключить все',
+    categories: {
+      account: {
+        name: 'Аккаунт',
+        description: 'Уведомления, связанные с вашим аккаунтом',
+        newLogin: 'Новый вход',
+        newLoginDesc: 'Когда новое устройство входит в ваш аккаунт',
+        passwordChanges: 'Изменения пароля',
+        passwordChangesDesc: 'Когда ваш пароль изменен'
+      },
+      finance: {
+        name: 'Финансы',
+        description: 'Уведомления, связанные с вашей финансовой активностью',
+        newTransactions: 'Новые транзакции',
+        newTransactionsDesc: 'Когда регистрируется новая транзакция',
+        budgetAlerts: 'Бюджетные оповещения',
+        budgetAlertsDesc: 'Когда вы приближаетесь к лимиту бюджета или превышаете его',
+        goalProgress: 'Прогресс цели',
+        goalProgressDesc: 'Обновления о ваших финансовых целях'
+      },
+      system: {
+        name: 'Система',
+        description: 'Системные уведомления и уведомления платформы',
+        platformUpdates: 'Обновления платформы',
+        platformUpdatesDesc: 'Новости об обновлениях и функциях платформы',
+        maintenanceAlerts: 'Оповещения о техобслуживании',
+        maintenanceAlertsDesc: 'Уведомления о плановом техобслуживании'
+      }
+    }
+  }
+};
+
 interface NotificationSectionProps {
   locale: Locale;
 }
@@ -26,25 +110,27 @@ type Notification = {
 };
 
 export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
+  const t = translations[locale];
+  
   // Example notification preferences data
   const [notifications, setNotifications] = useState<NotificationCategory[]>([
     {
       id: 'account',
-      name: 'Account',
-      description: 'Notifications related to your account',
+      name: t.categories.account.name,
+      description: t.categories.account.description,
       notifications: [
         {
           id: 'account-login',
-          name: 'New login',
-          description: 'When a new device logs into your account',
+          name: t.categories.account.newLogin,
+          description: t.categories.account.newLoginDesc,
           email: true,
           push: true,
           sms: false
         },
         {
           id: 'account-password',
-          name: 'Password changes',
-          description: 'When your password is changed',
+          name: t.categories.account.passwordChanges,
+          description: t.categories.account.passwordChangesDesc,
           email: true,
           push: true,
           sms: false
@@ -53,29 +139,29 @@ export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
     },
     {
       id: 'finance',
-      name: 'Finance',
-      description: 'Notifications related to your financial activity',
+      name: t.categories.finance.name,
+      description: t.categories.finance.description,
       notifications: [
         {
           id: 'finance-transaction',
-          name: 'New transactions',
-          description: 'When a new transaction is recorded',
+          name: t.categories.finance.newTransactions,
+          description: t.categories.finance.newTransactionsDesc,
           email: false,
           push: true,
           sms: false
         },
         {
           id: 'finance-budget',
-          name: 'Budget alerts',
-          description: 'When you approach or exceed budget limits',
+          name: t.categories.finance.budgetAlerts,
+          description: t.categories.finance.budgetAlertsDesc,
           email: true,
           push: true,
           sms: false
         },
         {
           id: 'finance-goals',
-          name: 'Goal progress',
-          description: 'Updates on your financial goals',
+          name: t.categories.finance.goalProgress,
+          description: t.categories.finance.goalProgressDesc,
           email: true,
           push: false,
           sms: false
@@ -84,21 +170,21 @@ export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
     },
     {
       id: 'system',
-      name: 'System',
-      description: 'System and platform notifications',
+      name: t.categories.system.name,
+      description: t.categories.system.description,
       notifications: [
         {
           id: 'system-updates',
-          name: 'Platform updates',
-          description: 'News about platform updates and features',
+          name: t.categories.system.platformUpdates,
+          description: t.categories.system.platformUpdatesDesc,
           email: true,
           push: false,
           sms: false
         },
         {
           id: 'system-maintenance',
-          name: 'Maintenance alerts',
-          description: 'Planned maintenance notifications',
+          name: t.categories.system.maintenanceAlerts,
+          description: t.categories.system.maintenanceAlertsDesc,
           email: true,
           push: true,
           sms: false
@@ -153,11 +239,6 @@ export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
     return category?.notifications.every(n => n[channel]) || false;
   };
 
-  const areAllDisabled = (categoryId: string, channel: 'email' | 'push' | 'sms') => {
-    const category = notifications.find(c => c.id === categoryId);
-    return category?.notifications.every(n => !n[channel]) || false;
-  };
-
   const handleSave = () => {
     setIsLoading(true);
     
@@ -171,21 +252,21 @@ export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-xl font-semibold">Notification Preferences</h2>
+        <h2 className="text-xl font-semibold">{t.notificationPreferences}</h2>
       </CardHeader>
       <CardBody>
         <p className="text-muted-foreground mb-6">
-          Manage how you receive notifications across channels.
+          {t.manageNotifications}
         </p>
         
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-medium text-foreground">Notification</th>
-                <th className="text-center py-3 px-4 font-medium text-foreground">Email</th>
-                <th className="text-center py-3 px-4 font-medium text-foreground">Push</th>
-                <th className="text-center py-3 px-4 font-medium text-foreground">SMS</th>
+                <th className="text-left py-3 px-4 font-medium text-foreground">{t.notification}</th>
+                <th className="text-center py-3 px-4 font-medium text-foreground">{t.email}</th>
+                <th className="text-center py-3 px-4 font-medium text-foreground">{t.push}</th>
+                <th className="text-center py-3 px-4 font-medium text-foreground">{t.sms}</th>
               </tr>
             </thead>
             <tbody>
@@ -201,7 +282,30 @@ export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
                   </tr>
                   <tr className="border-b border-border">
                     <td className="py-2 px-4 text-sm text-muted-foreground">
-                      Toggle all {category.name.toLowerCase()} notifications
+                      {t.toggleAll} {category.name.toLowerCase()} {t.notification.toLowerCase()}s
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      <Checkbox 
+                        checked={areAllEnabled(category.id, 'email')}
+                        onChange={() => handleToggleAll(category.id, 'email', !areAllEnabled(category.id, 'email'))}
+                      />
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      <Checkbox 
+                        checked={areAllEnabled(category.id, 'push')}
+                        onChange={() => handleToggleAll(category.id, 'push', !areAllEnabled(category.id, 'push'))}
+                      />
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      <Checkbox 
+                        checked={areAllEnabled(category.id, 'sms')}
+                        onChange={() => handleToggleAll(category.id, 'sms', !areAllEnabled(category.id, 'sms'))}
+                      />
+                    </td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="py-2 px-4 text-sm text-muted-foreground">
+                      {areAllEnabled(category.id, 'email') ? t.disableAll : t.enableAll} {category.name.toLowerCase()}
                     </td>
                     <td className="py-2 px-4 text-center">
                       <Checkbox 
@@ -263,7 +367,7 @@ export const NotificationsSection = ({ locale }: NotificationSectionProps) => {
           isLoading={isLoading}
           onClick={handleSave}
         >
-          Save Preferences
+          {t.saveChanges}
         </Button>
       </CardFooter>
     </Card>
