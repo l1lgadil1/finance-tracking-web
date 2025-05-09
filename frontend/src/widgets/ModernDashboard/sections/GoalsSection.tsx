@@ -24,6 +24,16 @@ interface GoalsSectionProps {
   t: {
     goals: string;
     viewAll: string;
+    loading: string;
+    error: string;
+    noGoalsYet: string;
+    createGoal: string;
+    completed: string;
+    daysLeft: string;
+    noDeadline: string;
+    goalAchieved: string;
+    complete: string;
+    viewMore: string;
   };
 }
 
@@ -56,7 +66,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
         <CardBody>
           <div className="flex justify-center items-center p-8">
             <div className="w-12 h-12 border-t-4 border-primary-500 rounded-full animate-spin"></div>
-            <span className="sr-only">Loading goals...</span>
+            <span className="sr-only">{t.loading}</span>
           </div>
         </CardBody>
       </Card>
@@ -72,7 +82,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
         </CardHeader>
         <CardBody>
           <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md">
-            {goals.error || 'Error loading goals'}
+            {goals.error || t.error}
           </div>
         </CardBody>
       </Card>
@@ -95,13 +105,13 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
           <div className="mb-4 mx-auto w-12 h-12 bg-primary-100 dark:bg-primary-900/50 rounded-full flex items-center justify-center">
             <Target className="text-primary-600 dark:text-primary-400" />
           </div>
-          <p className="text-muted-foreground mb-4">No financial goals yet</p>
+          <p className="text-muted-foreground mb-4">{t.noGoalsYet}</p>
           <Button 
             variant="outline" 
             className="inline-flex items-center gap-1"
             leftIcon={<Plus size={16} />}
           >
-            Create Goal
+            {t.createGoal}
           </Button>
         </CardBody>
       </Card>
@@ -164,7 +174,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
                 <h3 className="font-medium text-md">{goal.title || 'Goal'}</h3>
                 {isCompleted && (
                   <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
-                    Completed!
+                    {t.completed}
                   </span>
                 )}
               </div>
@@ -184,10 +194,10 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
               
               <div className="flex justify-between items-center text-xs text-muted-foreground">
                 <span>
-                  {Math.min(Math.round(progress), 100)}% complete
+                  {Math.min(Math.round(progress), 100)}% {t.complete}
                 </span>
                 <span>
-                  {isCompleted ? 'Goal achieved' : deadlineDate ? `${daysLeft} days left` : 'No deadline'}
+                  {isCompleted ? t.goalAchieved : deadlineDate ? `${daysLeft} ${t.daysLeft}` : t.noDeadline}
                 </span>
               </div>
             </motion.div>
@@ -197,7 +207,7 @@ export const GoalsSection: FC<GoalsSectionProps> = ({ locale, t }) => {
         {goals.data.length > 3 && (
           <div className="text-center pt-2">
             <Button variant="ghost" size="sm">
-              View {goals.data.length - 3} more goals
+              {t.viewMore.replace('{count}', (goals.data.length - 3).toString())}
             </Button>
           </div>
         )}

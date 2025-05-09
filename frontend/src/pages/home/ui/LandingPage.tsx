@@ -187,7 +187,7 @@ const landingPageTranslations = {
       button: 'Get Started Now'
     },
     footer: {
-      copyright: '© 2023 AqshaTracker. All rights reserved.',
+      copyright: '© 2025 AqshaTracker. All rights reserved.',
       links: {
         privacy: 'Privacy Policy',
         terms: 'Terms of Service',
@@ -201,6 +201,13 @@ const landingPageTranslations = {
       register: {
         title: 'Register'
       }
+    },
+    dashboard: {
+      title: 'Dashboard',
+      transactions: 'Transactions',
+      analytics: 'Analytics',
+      profile: 'Profile',
+      logout: 'Logout'
     }
   },
   ru: {
@@ -333,7 +340,7 @@ const landingPageTranslations = {
       button: 'Начать сейчас'
     },
     footer: {
-      copyright: '© 2023 АкшаТрекер. Все права защищены.',
+      copyright: '© 2025 АкшаТрекер. Все права защищены.',
       links: {
         privacy: 'Политика конфиденциальности',
         terms: 'Условия использования',
@@ -342,11 +349,18 @@ const landingPageTranslations = {
     },
     auth: {
       login: {
-        title: 'Login'
+        title: 'Войти'
       },
       register: {
-        title: 'Register'
+        title: 'Регистрация'
       }
+    },
+    dashboard: {
+      title: 'Панель управления',
+      transactions: 'Транзакции',
+      analytics: 'Аналитика',
+      profile: 'Профиль',
+      logout: 'Выйти'
     }
   }
 };
@@ -417,22 +431,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => router.push(`/${locale}/dashboard`)}
-                >
-                  Dashboard
+                > 
+                  {t.dashboard.title}
                 </Button>
                 <Button 
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push(`/${locale}/transactions`)}
+                  onClick={() => router.push(`/${locale}/dashboard/transactions`)}
                 >
-                  Transactions
+                  {t.dashboard.transactions}
                 </Button>
                 <Button 
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push(`/${locale}/analytics`)}
+                  onClick={() => router.push(`/${locale}/dashboard/analytics`)}
                 >
-                  Analytics
+                  {t.dashboard.analytics}
                 </Button>
               </div>
               <div className="flex items-center space-x-4">
@@ -464,10 +478,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
                       className="w-full text-left px-4 py-2 hover:bg-primary-100 dark:hover:bg-primary-900"
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/${locale}/profile`);
+                        router.push(`/${locale}/dashboard`);
                       }}
                     >
-                      Profile Settings
+                      {t.dashboard.title}
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -478,14 +492,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
                         handleLogout();
                       }}
                     >
-                      Logout
+                      {t.dashboard.logout}
                     </Button>
                   </motion.div>
                 </motion.div>
               </div>
             </div>
           ) : (
-            // Non-authenticated Navigation
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex space-x-6">
                 <a href="#features" className="text-foreground hover:text-primary-500 transition-colors">{t.nav.features}</a>
@@ -539,39 +552,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
         </div>
       </nav>
 
-      {/* Conditional Rendering based on Authentication */}
-      {isAuthenticated ? (
-        // Authenticated User View
-        <section className="w-full flex flex-col items-center justify-center py-20 px-4 md:px-8 bg-gradient-to-b from-background to-card">
-          <motion.div
-            className="max-w-5xl mx-auto text-center"
-            initial="hidden"
-            animate="visible"
-            variants={fadeIn}
-          >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-              Welcome back, {user?.name}!
-            </h1>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-              Continue managing your finances and tracking your goals.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  size="lg"
-                  onClick={handleDashboardClick}
-                >
-                  Go to Dashboard
-                </Button>
-              </motion.div>
-            </div>
-          </motion.div>
-        </section>
-      ) : (
-        // Non-authenticated View - Existing Landing Page Content
         <>
           {/* Hero Section */}
           <section className="w-full flex flex-col items-center justify-center py-20 px-4 md:px-8 bg-gradient-to-b from-background to-card">
@@ -883,7 +863,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ params }) => {
             </div>
           </section>
         </>
-      )}
 
       {/* Footer */}
       <footer className="w-full py-8 px-4 bg-card border-t border-border">
