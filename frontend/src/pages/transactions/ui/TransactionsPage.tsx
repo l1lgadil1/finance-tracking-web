@@ -150,9 +150,15 @@ export function TransactionsPage({ locale }: TransactionsPageProps) {
   const handleEditTransaction = async (id: string) => {
     setSelectedTransactionId(id);
     await fetchTransactionById(id);
-    setTransactionToEdit(currentTransaction);
     setIsTransactionModalOpen(true);
   };
+
+  // Ensure transactionToEdit is set after currentTransaction is loaded
+  useEffect(() => {
+    if (isTransactionModalOpen && currentTransaction && currentTransaction.id === selectedTransactionId) {
+      setTransactionToEdit({ ...currentTransaction }); // ensure new reference
+    }
+  }, [isTransactionModalOpen, currentTransaction, selectedTransactionId]);
 
   // Handle transaction deletion confirmation
   const handleConfirmDelete = (id: string) => {

@@ -252,19 +252,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   // Filter categories based on transaction type
   const filteredCategories = useMemo(() => {
-    if (!categories) return [];
-    
-    // Get the category type name that corresponds to the selected transaction type
-    const targetCategoryTypeName = getCategoryTypeForTransaction(transactionType);
-    console.log(`Filtering categories for type: ${transactionType} (looking for categoryTypeNameSnapshot: "${targetCategoryTypeName}")`);
-    
-    // Filter categories by their categoryTypeNameSnapshot
-    return (categories as Category[]).filter(category => {
-      const match = category.categoryTypeId === targetCategoryTypeName;
-      console.log(`Category ${category.name} has typeSnapshot: "${category.categoryTypeNameSnapshot}" - match: ${match}`);
-      return match;
-    });
-  }, [categories, transactionType]);
+    if (!categories || !categoryTypes) return [];
+    // Find the category type object for the current transaction type
+    const categoryTypeName = getCategoryTypeForTransaction(transactionType);
+    const categoryTypeObj = categoryTypes.find((ct: { name: string; id: string }) => ct.name === categoryTypeName);
+    if (!categoryTypeObj) return [];
+    return (categories as Category[]).filter(category => category.categoryTypeId === categoryTypeObj.id);
+  }, [categories, transactionType, categoryTypes]);
 
   // Log the filtered categories for debugging
   useEffect(() => {
